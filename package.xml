@@ -4,5 +4,9 @@
         <members>WhiteboardController</members>
         <name>ApexClass</name>
     </types>
+    <types>
+        <members>WhiteboardHome</members>
+        <name>ApexPage</name>
+    </types>
     <version>25.0</version>
 </Package>
