@@ -1,6 +1,249 @@
-<apex:page >
-<!-- Begin Default Content REMOVE THIS -->
-<h1>Congratulations</h1>
-This is your new Page
-<!-- End Default Content REMOVE THIS -->
+<apex:page standardStylesheets="true" showHeader="true" sidebar="true" controller="WhiteboardController" id="thePage">
+    <apex:styleSheet value="{!URLFOR($Resource.WBStyles,'css/standardS.css')}"/> 
+    <apex:styleSheet value="{!URLFOR($Resource.WBStyles,'css/text.css')}"/> 
+    <apex:styleSheet value="{!URLFOR($Resource.WBStyles,'css/960.css')}"/>
+    <apex:styleSheet value="{!URLFOR($Resource.WBStyles,'css/reset.css')}"/>
+    <apex:styleSheet value="{!URLFOR($Resource.WBStyles,'css/bootstrap.min.css')}"/> 
+    <script src="{!URLFOR($Resource.jQueryLibrary)}"/>
+    <script src="{!URLFOR($Resource.bootstrap_modal)}"/>
+    <script type="text/javascript">        
+        var itemId;
+        var j$ = jQuery.noConflict();
+        function setWhiteboardId()
+        {
+            document.getElementById('thePage:activityForm:whiteboardId').value = itemId;
+            j$('#modal-from-dom-Activity-Company').modal('hide');
+        }
+    </script>
+    <script type="text/javascript">        
+        var itemIdPersonal;
+        var j$ = jQuery.noConflict();
+        function setWhiteboardIdPersonal()
+        {
+            document.getElementById('thePage:activityFormP:whiteboardIdPersonal').value = itemIdPersonal;
+            j$('#modal-from-dom-Activity-Personal').modal('hide');
+        }
+    </script>
+    <script type="text/javascript">
+        var j$ = jQuery.noConflict();
+        j$(document).ready(function() {
+        
+          j$('div#PersonalWB').hide();  
+        
+          j$('#switchToPersonal').click(function(){
+             j$('div#PersonalWB').show();
+             j$('div#CompanyWB').hide();
+          });
+          
+          j$('#switchToCompany').click(function(){
+             j$('div#PersonalWB').hide();
+             j$('div#CompanyWB').show();
+          });
+
+        });
+    </script>
+    
+    <div id="pageBlock" class="container_12">
+    
+    <a href="#Company" id="switchToCompany" class="myButton">Company Whiteboard</a>
+    <a href="#Personal" id="switchToPersonal" class="myButton">Personal Whiteboard</a>
+
+    <div id="CompanyWB">
+        <div id="Header">
+            <div class="grid_12">
+                <apex:sectionHeader title="Company Whiteboard" id="title"/>
+                <a href="#wbItem" id="newItem" data-controls-modal="modal-from-dom-Item-Company" data-backdrop="true">New Item</a><br/><br/>
+            </div>
+        </div>
+        
+        <apex:form >
+            <apex:pageBlock id="companyPageBlock">
+                <div id="itemSpec" class="container_12">
+                <!-- Starts the repetition of the ITEMS -->
+                    <apex:repeat value="{!whiteboard}" var="item" id="itemList">
+                    <div id="iterItem" class="grid_12">
+                        <div id="ItemHeading">
+                            <div id="itemTitle" class="grid_8">
+                                <h1><a href="/{!item.Id}" id="itemName">{!item.Name}</a></h1><br/>
+                            </div>
+                            <div class="grid_3" style="line-height:30px">                             
+                                <a href="#wbAct" id="newActLink" data-controls-modal="modal-from-dom-Activity-Company" data-backdrop="true" onclick="itemId='{!item.Id}'" ><u>New Activity</u></a> 
+                                <apex:commandLink reRender="companyPageBlock" action="{!deleteItem}" value="Close Item" id="delete" style="text-decoration: underline">
+                                    <apex:param name="ItemId" value="{!item.Id}"/>
+                                </apex:commandLink>
+                            </div>
+                        </div>
+                        <!-- Starts the repetition of the ACTIVITIES -->
+                        <apex:repeat value="{!item.Whiteboard_Item_Activities__r}" var="act" id="actList">
+                            <div id="itrActivity" class="grid_11">
+                                <div id="actHeader">
+                                    <div id="basic" class="grid_7">
+                                         <h5><a href="/{!act.Id}">{!act.Name}</a></h5><br/>
+                                    </div>
+                                    <div id="date" class="grid_2">
+                                        <apex:outputField value="{!act.Due_Date__c}"/>
+                                    </div>
+                                    <div id="delAct" class="grid_2">
+                                        <apex:commandLink reRender="companyPageBlock" action="{!deleteAct}" style="text-decoration: und" value="Close Activity" id="deleteAct">
+                                            <apex:param name="ActId" value="{!act.Id}"/>
+                                        </apex:commandLink>
+                                    </div>                 
+                                </div>
+                                <div class="actBody">
+                                    <div id="basicd" class="grid_7">
+                                        <apex:outputText value="{!act.Description__c}" id="actDes"/><br/>
+                                    </div>
+                                </div>
+                            </div>                          
+                        </apex:repeat>
+                        <!-- Ends the repetition of the ACTIVITIES -->
+                        </div>
+                    </apex:repeat>
+                </div>
+            </apex:pageBlock>
+        </apex:form>
+        <!-- Ends the repetition of the ITEMS -->
+        
+        <!-- ACTIVITY ADD modal box -->
+        <div id="modal-from-dom-Activity-Company" class="modal hide fade" style="display: none;">
+            <apex:form id="activityForm">
+                <apex:inputHidden id="whiteboardId" value="{!whiteboardId}"/>
+                <div class="modal-header">
+                    <h3>New Activity</h3>
+                </div>
+                <div class="modal-body">
+                    <apex:pageBlock >    
+                        <apex:pageBlockButtons location="bottom">
+                            <apex:commandButton reRender="companyPageBlock, activityForm" styleClass="btn" value="Save" onclick="setWhiteboardId(); j$('#modal-from-dom-Activity-Company').modal('hide');" action="{!saveAct}"/>
+                            <apex:commandButton reRender="activityForm" styleClass="btn" value="Cancel" onclick="j$('#modal-from-dom-Activity-Company').modal('hide');return false;"/>
+                        </apex:pageBlockButtons>
+                        <apex:pageBlockSection showHeader="false" id="wb_item_act_input">
+                            <apex:inputField label="Name" value="{!activity.Name}" id="n"/><br/>
+                            <apex:inputField label="Description" value="{!activity.Description__c}" id="a"/><br/>
+                            <apex:inputField label="Due Date" value="{!activity.Due_Date__c}" id="d"/><br/>
+                        </apex:pageBlockSection>
+                    </apex:pageBlock>
+                </div>
+            </apex:form>                    
+        </div>
+        
+        <!-- ITEM ADD modal box -->
+        <div id="modal-from-dom-Item-Company" class="modal hide fade" style="display: none;">
+            <apex:form id="itemFormC">
+                <div class="modal-header">
+                    <h3>New Item</h3>
+                </div>
+                <apex:pageBlock >
+                    <apex:pageBlockButtons location="bottom" styleClass="save_button">
+                        <apex:commandButton reRender="companyPageBlock, itemFormC" styleClass="btn" value="Save" onclick="j$('#modal-from-dom-Item-Company').modal('hide');" action="{!save}"/>
+                        <apex:commandButton styleClass="btn" value="Cancel" onclick="j$('#modal-from-dom-Item-Company').modal('hide');return false;"/>
+                    </apex:pageBlockButtons>
+                    <apex:pageBlockSection showHeader="false" id="wb_item_input">
+                        <apex:inputField label="Name" value="{!Item.Name}"/>
+                    </apex:pageBlockSection>
+                </apex:pageBlock>                
+            </apex:form>            
+        </div>
+    </div> <!-- ENDS THE COMPANY WHITEBOARD -->
+    
+    <!-- BEGIN PERSONAL WHITEBOARD -->
+    <div id="PersonalWB">
+        <div id="HeaderP">
+            <div class="grid_12">
+                <apex:sectionHeader title="Personal Whiteboard" id="titleP"/>
+                <a href="#wbItem" id="newItemP" data-controls-modal="modal-from-dom-Item-Personal" data-backdrop="true">New Item</a><br/><br/>
+            </div>
+        </div>
+        
+        <apex:form >
+            <apex:pageBlock id="personalPageBlock">
+                <div id="itemSpecP" class="container_12">
+                <!-- Starts the repetition of the ITEMS -->
+                    <apex:repeat value="{!personalWhiteboard}" var="item" id="itemListPersonalItems">
+                    <div id="iterItem" class="grid_12">
+                        <div id="ItemHeading">
+                            <div id="itemTitle" class="grid_8">
+                                <h1><a href="/{!item.Id}" id="itemName">{!item.Name}</a></h1><br/>
+                            </div>
+                            <div class="grid_3" style="line-height:30px">                             
+                                <a href="#wbAct" id="newActLink" data-controls-modal="modal-from-dom-Activity-Personal" data-backdrop="true" onclick="itemIdPersonal='{!item.Id}'" ><u>New Activity</u></a> 
+                                <apex:commandLink action="{!deleteItem}" value="Close Item" id="deleteP" style="text-decoration: underline" reRender="personalPageBlock">
+                                    <apex:param name="ItemId" value="{!item.Id}"/>
+                                </apex:commandLink>
+                            </div>
+                        </div>
+                        <!-- Starts the repetition of the ACTIVITIES -->
+                        <apex:repeat value="{!item.Whiteboard_Item_Activities__r}" var="act" id="actList">
+                            <div id="itrActivity" class="grid_11">
+                                <div id="actHeader">
+                                    <div id="basic" class="grid_7">
+                                         <h5><a href="/{!act.Id}">{!act.Name}</a></h5><br/>
+                                    </div>
+                                    <div id="date" class="grid_2">
+                                        <apex:outputField value="{!act.Due_Date__c}"/>
+                                    </div>
+                                    <div id="delAct" class="grid_2">
+                                        <apex:commandLink action="{!deleteAct}" style="text-decoration: und" value="Close Activity" id="deleteActP" reRender="personalPageBlock">
+                                            <apex:param name="ActId" value="{!act.Id}"/>
+                                        </apex:commandLink>
+                                    </div>                 
+                                </div>
+                                <div class="actBody">
+                                    <div id="basicd" class="grid_7">
+                                        <apex:outputText value="{!act.Description__c}" id="actDesP"/><br/>
+                                    </div>
+                                </div>
+                            </div>                          
+                        </apex:repeat>
+                        <!-- Ends the repetition of the ACTIVITIES -->
+                        </div>
+                    </apex:repeat>
+                </div>
+            </apex:pageBlock>
+        </apex:form>
+        <!-- Ends the repetition of the ITEMS -->
+        
+        <!-- ACTIVITY ADD modal box -->
+        <div id="modal-from-dom-Activity-Personal" class="modal hide fade" style="display: none;">
+            <apex:form id="activityFormP">
+                <apex:inputHidden id="whiteboardIdPersonal" value="{!whiteboardIdPersonal}"/>
+                <div class="modal-header">
+                    <h3>New Activity</h3>
+                </div>
+                <div class="modal-body">
+                    <apex:pageBlock >    
+                        <apex:pageBlockButtons location="bottom">
+                            <apex:commandButton reRender="personalPageBlock, activityFormP" styleClass="btn" value="Save" onclick="setWhiteboardIdPersonal();" action="{!saveActPersonal}"/>
+                            <apex:commandButton styleClass="btn" value="Cancel" onclick="j$('#modal-from-dom-Activity-Personal').modal('hide'); return false;"/>
+                        </apex:pageBlockButtons>
+                        <apex:pageBlockSection showHeader="false" id="wb_item_act_input">
+                            <apex:inputField label="Name" value="{!activity.Name}" id="n"/><br/>
+                            <apex:inputField label="Description" value="{!activity.Description__c}" id="a"/><br/>
+                            <apex:inputField label="Due Date" value="{!activity.Due_Date__c}" id="d"/><br/>
+                        </apex:pageBlockSection>
+                    </apex:pageBlock>
+                </div>
+            </apex:form>                    
+        </div>
+        
+        <!-- ITEM ADD modal box -->
+        <div id="modal-from-dom-Item-Personal" class="modal hide fade" style="display: none;">
+            <apex:form id="itemFormP">
+                <div class="modal-header">
+                    <h3>New Item</h3>
+                </div>
+                <apex:pageBlock >
+                    <apex:pageBlockButtons location="bottom" styleClass="save_button">
+                        <apex:commandButton reRender="personalPageBlock, itemFormP" styleClass="btn" value="Save" onclick="j$('#modal-from-dom-Item-Personal').modal('hide');" action="{!savePersonal}" id="savePersonalItem"/>
+                        <apex:commandButton styleClass="btn" value="Cancel" 
+                            onclick="j$('#modal-from-dom-Item-Personal').modal('hide'); return false;"/>
+                    </apex:pageBlockButtons>
+                    <apex:pageBlockSection showHeader="false" id="wb_item_inputP">
+                        <apex:inputField label="Name" value="{!Item.Name}"/>
+                    </apex:pageBlockSection>
+                </apex:pageBlock>                
+            </apex:form>            
+        </div>
+    </div> <!-- END PERSONAL WHITEBOARD -->                           
+    </div>
 </apex:page>
