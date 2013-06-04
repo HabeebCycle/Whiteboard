@@ -4,23 +4,62 @@ public with sharing class WhiteboardController {
     public String WhiteboardIdPersonal { get; set; }
     public Whiteboard_Item_Activity__c activity {get; private set;}
     public Whiteboard_Item__c Item {get; private set;}
+    public List<Whiteboard_Item__c> companyItems { get; set;}
+    public List<Whiteboard_Item__c> personalItems { get; set; }
+
+	// ************************ SETTING UP CONTROLLER AND POPULATING LISTS ****************************************************************
 
     public WhiteboardController() {
         Item = new Whiteboard_Item__c();
         activity = new Whiteboard_Item_Activity__c();
         getWhiteboard();
+        populateItems();
     }
+    
+    public void populateItems() {
+    	getCompanyItems();
+    	getPersonalItems();
+    }
+    
+    public void getCompanyItems() {
+    	companyItems = [SELECT Name, Id,
+					     (SELECT Name, Due_Date__c, Description__c
+					      FROM Whiteboard_Item_Activities__r
+					      WHERE PersonalItem__c =: false 
+					      ORDER BY CreatedDate 
+					      LIMIT 30)
+					  FROM Whiteboard_Item__c
+					  WHERE PersonalItem__c =: false
+					  ORDER BY CreatedDate
+					  LIMIT 100];
+    }
+    
+    public void getPersonalItems() {
+    	personalItems = [SELECT Name, Id,
+                         (SELECT Name, Due_Date__c, Description__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
+                          ORDER BY CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
+                      ORDER BY CreatedDate
+                      LIMIT 100];
+    }
+    
+    // ********************************************************************************************************************************
+    
+    // ************************ DELETING ITEMS AND ACTIVITIES ****************************************************************
 
     public void deleteItem() {
 
         List<Whiteboard_Item__c> goners = [SELECT id, name from Whiteboard_Item__c where id = :ApexPages.currentpage().getparameters().get('ItemId')];
 
-            try
-            {
-                delete goners;                
+            try {
+                delete goners;
+                getCompanyItems();              
             }            
-            catch(Exception ex)
-            {
+            catch(Exception ex) {
                 ApexPages.addMessages(ex);
             }              
         return;
@@ -28,16 +67,17 @@ public with sharing class WhiteboardController {
     
     public void deleteAct() {
         List<Whiteboard_Item_Activity__c> goners = [SELECT Id, Name from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')];            
-        try 
-        {
+        try {
              delete goners;
+             getCompanyItems();
         }
-        catch (Exception ex) 
-        {
+        catch (Exception ex) {
             ApexPages.addMessages(ex);
         }
         return;
     }
+    
+    // ********************************************************************************************************************************
     
     public Whiteboard_Item__c[] getWhiteboard() {
 
@@ -67,15 +107,15 @@ public with sharing class WhiteboardController {
                       LIMIT 100];
     }
     
+    // ************************ SAVING ITEMS AND ACTIVITIES ****************************************************************
+    
     public PageReference save() {
-
-        try
-        {
+        try {
             insert Item;
-            Item = new Whiteboard_Item__c();         
+            Item = new Whiteboard_Item__c();
+            getCompanyItems();         
         }
-        catch(Exception ex)
-        {
+        catch(Exception ex) {
             ApexPages.addMessages(ex);
         }
         return null;
@@ -83,13 +123,12 @@ public with sharing class WhiteboardController {
     
     public PageReference saveAct() {
         activity.Whiteboard_Item__c = WhiteboardId;
-        try
-        {
+        try {
             insert activity;
             activity = new Whiteboard_Item_Activity__c();
+            getCompanyItems();
         }                
-        catch(Exception ex)
-        {
+        catch(Exception ex) {
             ApexPages.addMessages(ex);
         }
         return null;
@@ -101,7 +140,8 @@ public with sharing class WhiteboardController {
         {
             Item.PersonalItem__c = true;
             insert Item;
-            Item = new Whiteboard_Item__c();         
+            Item = new Whiteboard_Item__c();
+            getPersonalItems();         
         }
         catch(Exception ex)
         {
@@ -117,6 +157,7 @@ public with sharing class WhiteboardController {
             activity.PersonalItem__c = true;
             insert activity;
             activity = new Whiteboard_Item_Activity__c();
+            getPersonalItems();    
         }                
         catch(Exception ex)
         {
@@ -124,6 +165,8 @@ public with sharing class WhiteboardController {
         }
         return;
     }
+    
+    // ********************************************************************************************************************************
     
     public void setItem(Whiteboard_Item__c newItem) {
         Item = newItem;

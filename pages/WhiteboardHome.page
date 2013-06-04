@@ -60,7 +60,7 @@
             <apex:pageBlock id="companyPageBlock">
                 <div id="itemSpec" class="container_12">
                 <!-- Starts the repetition of the ITEMS -->
-                    <apex:repeat value="{!whiteboard}" var="item" id="itemList">
+                    <apex:repeat value="{!companyItems}" var="item" id="itemList">
                     <div id="iterItem" class="grid_12">
                         <div id="ItemHeading">
                             <div id="itemTitle" class="grid_8">
@@ -159,7 +159,7 @@
             <apex:pageBlock id="personalPageBlock">
                 <div id="itemSpecP" class="container_12">
                 <!-- Starts the repetition of the ITEMS -->
-                    <apex:repeat value="{!personalWhiteboard}" var="item" id="itemListPersonalItems">
+                    <apex:repeat value="{!personalItems}" var="item" id="itemListPersonalItems">
                     <div id="iterItem" class="grid_12">
                         <div id="ItemHeading">
                             <div id="itemTitle" class="grid_8">
