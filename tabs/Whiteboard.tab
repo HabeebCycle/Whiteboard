@@ -2,6 +2,6 @@
 <CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
     <label>Whiteboard</label>
     <mobileReady>false</mobileReady>
-    <motif>Custom62: Chalkboard</motif>
+    <motif>Custom20: Airplane</motif>
     <page>WhiteboardHome</page>
 </CustomTab>

@@ -6,26 +6,14 @@
     </types>
     <types>
         <members>*</members>
-        <name>ApexComponent</name>
-    </types>
-    <types>
-        <members>*</members>
         <name>ApexPage</name>
     </types>
     <types>
         <members>*</members>
-<<<<<<< HEAD
-        <name>ApexTrigger</name>
-    </types>
-    <types>
-        <members>Whiteboard_Item_Activity__c</members>
-        <members>Whiteboard_Item__c</members>
-=======
         <name>CustomApplication</name>
     </types>
     <types>
         <members>*</members>
->>>>>>> 9432f8c5cbf07d87a27466437f62da142125261e
         <name>CustomObject</name>
     </types>
     <types>

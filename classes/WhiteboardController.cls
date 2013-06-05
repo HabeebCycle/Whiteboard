@@ -1,4 +1,4 @@
-public with sharing class WhiteboardController {
+public with sharing class WhiteboardController { 
     
     public String WhiteboardId { get; set; }
     public String WhiteboardIdPersonal { get; set; }
