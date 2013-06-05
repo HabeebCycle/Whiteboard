@@ -17,17 +17,17 @@
  * limitations under the License.
  * ========================================================= */
 
-
-!function( $ ){
+var j$ = jQuery.noConflict();
+!function( j$ ){
 
  /* CSS TRANSITION SUPPORT (https://gist.github.com/373874)
   * ======================================================= */
 
   var transitionEnd
 
-  $(document).ready(function () {
+  j$(document).ready(function () {
 
-    $.support.transition = (function () {
+    j$.support.transition = (function () {
       var thisBody = document.body || document.documentElement
         , thisStyle = thisBody.style
         , support = thisStyle.transition !== undefined || thisStyle.WebkitTransition !== undefined || thisStyle.MozTransition !== undefined || thisStyle.MsTransition !== undefined || thisStyle.OTransition !== undefined
@@ -35,13 +35,13 @@
     })()
 
     // set CSS transition event type
-    if ( $.support.transition ) {
+    if ( j$.support.transition ) {
       transitionEnd = "TransitionEnd"
-      if ( $.browser.webkit ) {
+      if ( j$.browser.webkit ) {
       	transitionEnd = "webkitTransitionEnd"
-      } else if ( $.browser.mozilla ) {
+      } else if ( j$.browser.mozilla ) {
       	transitionEnd = "transitionend"
-      } else if ( $.browser.opera ) {
+      } else if ( j$.browser.opera ) {
       	transitionEnd = "oTransitionEnd"
       }
     }
@@ -53,9 +53,9 @@
   * ============================= */
 
   var Modal = function ( content, options ) {
-    this.settings = $.extend({}, $.fn.modal.defaults, options)
-    this.$element = $(content)
-      .delegate('.close', 'click.modal', $.proxy(this.hide, this))
+    this.settings = j$.extend({}, j$.fn.modal.defaults, options)
+    this.j$element = j$(content)
+      .delegate('.close', 'click.modal', j$.proxy(this.hide, this))
 
     if ( this.settings.show ) {
       this.show()
@@ -73,26 +73,26 @@
     , show: function () {
         var that = this
         this.isShown = true
-        this.$element.trigger('show')
+        this.j$element.trigger('show')
 
         escape.call(this)
         backdrop.call(this, function () {
-          var transition = $.support.transition && that.$element.hasClass('fade')
+          var transition = j$.support.transition && that.j$element.hasClass('fade')
 
-          that.$element
+          that.j$element
             .appendTo(document.body)
             .show()
 
           if (transition) {
-            that.$element[0].offsetWidth // force reflow
+            that.j$element[0].offsetWidth // force reflow
           }
 
-          that.$element
+          that.j$element
             .addClass('in')
 
           transition ?
-            that.$element.one(transitionEnd, function () { that.$element.trigger('shown') }) :
-            that.$element.trigger('shown')
+            that.j$element.one(transitionEnd, function () { that.j$element.trigger('shown') }) :
+            that.j$element.trigger('shown')
 
         })
 
@@ -111,20 +111,20 @@
 
         escape.call(this)
 
-        this.$element
+        this.j$element
           .trigger('hide')
           .removeClass('in')
 
         function removeElement () {
-          that.$element
+          that.j$element
             .hide()
             .trigger('hidden')
 
           backdrop.call(that)
         }
 
-        $.support.transition && this.$element.hasClass('fade') ?
-          this.$element.one(transitionEnd, removeElement) :
+        j$.support.transition && this.j$element.hasClass('fade') ?
+          this.j$element.one(transitionEnd, removeElement) :
           removeElement()
 
         return this
@@ -138,37 +138,37 @@
 
   function backdrop ( callback ) {
     var that = this
-      , animate = this.$element.hasClass('fade') ? 'fade' : ''
+      , animate = this.j$element.hasClass('fade') ? 'fade' : ''
     if ( this.isShown && this.settings.backdrop ) {
-      var doAnimate = $.support.transition && animate
+      var doAnimate = j$.support.transition && animate
 
-      this.$backdrop = $('<div class="modal-backdrop ' + animate + '" />')
+      this.j$backdrop = j$('<div class="modal-backdrop ' + animate + '" />')
         .appendTo(document.body)
 
       if ( this.settings.backdrop != 'static' ) {
-        this.$backdrop.click($.proxy(this.hide, this))
+        this.j$backdrop.click(j$.proxy(this.hide, this))
       }
 
       if ( doAnimate ) {
-        this.$backdrop[0].offsetWidth // force reflow
+        this.j$backdrop[0].offsetWidth // force reflow
       }
 
-      this.$backdrop.addClass('in')
+      this.j$backdrop.addClass('in')
 
       doAnimate ?
-        this.$backdrop.one(transitionEnd, callback) :
+        this.j$backdrop.one(transitionEnd, callback) :
         callback()
 
-    } else if ( !this.isShown && this.$backdrop ) {
-      this.$backdrop.removeClass('in')
+    } else if ( !this.isShown && this.j$backdrop ) {
+      this.j$backdrop.removeClass('in')
 
       function removeElement() {
-        that.$backdrop.remove()
-        that.$backdrop = null
+        that.j$backdrop.remove()
+        that.j$backdrop = null
       }
 
-      $.support.transition && this.$element.hasClass('fade')?
-        this.$backdrop.one(transitionEnd, removeElement) :
+      j$.support.transition && this.j$element.hasClass('fade')?
+        this.j$backdrop.one(transitionEnd, removeElement) :
         removeElement()
     } else if ( callback ) {
        callback()
@@ -178,13 +178,13 @@
   function escape() {
     var that = this
     if ( this.isShown && this.settings.keyboard ) {
-      $(document).bind('keyup.modal', function ( e ) {
+      j$(document).bind('keyup.modal', function ( e ) {
         if ( e.which == 27 ) {
           that.hide()
         }
       })
     } else if ( !this.isShown ) {
-      $(document).unbind('keyup.modal')
+      j$(document).unbind('keyup.modal')
     }
   }
 
@@ -192,7 +192,7 @@
  /* MODAL PLUGIN DEFINITION
   * ======================= */
 
-  $.fn.modal = function ( options ) {
+  j$.fn.modal = function ( options ) {
     var modal = this.data('modal')
 
     if (!modal) {
@@ -204,7 +204,7 @@
       }
 
       return this.each(function () {
-        $(this).data('modal', new Modal(this, options))
+        j$(this).data('modal', new Modal(this, options))
       })
     }
 
@@ -221,9 +221,9 @@
     return this
   }
 
-  $.fn.modal.Modal = Modal
+  j$.fn.modal.Modal = Modal
 
-  $.fn.modal.defaults = {
+  j$.fn.modal.defaults = {
     backdrop: false
   , keyboard: false
   , show: false
@@ -233,11 +233,11 @@
  /* MODAL DATA- IMPLEMENTATION
   * ========================== */
 
-  $(document).ready(function () {
-    $('body').delegate('[data-controls-modal]', 'click', function (e) {
+  j$(document).ready(function () {
+    j$('body').delegate('[data-controls-modal]', 'click', function (e) {
       e.preventDefault()
-      var $this = $(this).data('show', true)
-      $('#' + $this.attr('data-controls-modal')).modal( $this.data() )
+      var j$this = j$(this).data('show', true)
+      j$('#' + j$this.attr('data-controls-modal')).modal( j$this.data() )
     })
   })
 

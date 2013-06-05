@@ -2,47 +2,83 @@ public with sharing class WhiteboardController {
     
     public String WhiteboardId { get; set; }
     public String WhiteboardIdPersonal { get; set; }
+    
     public Whiteboard_Item_Activity__c activity {get; private set;}
     public Whiteboard_Item__c Item {get; private set;}
-    public List<Whiteboard_Item__c> companyItems { get; set;}
-    public List<Whiteboard_Item__c> personalItems { get; set; }
+    
+    public List<Whiteboard_Item__c> currentItems { get; set;}
+    public List<Whiteboard_Item__c> trashItems { get; set; }
+    
+    public String currentWhiteboard { get; set; }
+    public Boolean indicator { get; set; }  // true if company, false if personal
 
-	// ************************ SETTING UP CONTROLLER AND POPULATING LISTS ****************************************************************
+    // ************************ SETTING UP CONTROLLER AND POPULATING LISTS ****************************************************************
 
     public WhiteboardController() {
+        currentItems = new List<Whiteboard_Item__c>();
+        trashItems = new List<Whiteboard_Item__c>();
+        
+        currentWhiteboard = 'Company Whiteboard';
         Item = new Whiteboard_Item__c();
         activity = new Whiteboard_Item_Activity__c();
-        getWhiteboard();
-        populateItems();
-    }
-    
-    public void populateItems() {
-    	getCompanyItems();
-    	getPersonalItems();
+        getCompanyItems();
+        indicator = true; 
     }
     
     public void getCompanyItems() {
-    	companyItems = [SELECT Name, Id,
-					     (SELECT Name, Due_Date__c, Description__c
-					      FROM Whiteboard_Item_Activities__r
-					      WHERE PersonalItem__c =: false 
-					      ORDER BY CreatedDate 
-					      LIMIT 30)
-					  FROM Whiteboard_Item__c
-					  WHERE PersonalItem__c =: false
-					  ORDER BY CreatedDate
-					  LIMIT 100];
+        currentWhiteboard = 'Company Whiteboard';
+        currentItems = [SELECT Name, Id, Trashed__c,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false 
+                          ORDER BY CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Trashed__c =: false
+                      ORDER BY CreatedDate
+                      LIMIT 100];
+        indicator = true;
+        getCompanyTrash();
+    }              
+          
+    public void getCompanyTrash() {   
+        trashItems = [SELECT Name, Id, Trashed__c,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false 
+                          ORDER BY CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Trashed__c =: true
+                      ORDER BY CreatedDate
+                      LIMIT 100];   
     }
     
     public void getPersonalItems() {
-    	personalItems = [SELECT Name, Id,
-                         (SELECT Name, Due_Date__c, Description__c
+        currentWhiteboard = 'Personal Whiteboard';
+        currentItems = [SELECT Name, Id, Trashed__c,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
                           ORDER BY CreatedDate 
                           LIMIT 30)
                       FROM Whiteboard_Item__c
-                      WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
+                      WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true AND Trashed__c =: false
+                      ORDER BY CreatedDate
+                      LIMIT 100];
+        indicator = false;
+        getPersonalTrash();
+    }
+    
+    public void getPersonalTrash() {
+        trashItems = [SELECT Name, Id, Trashed__c,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
+                          ORDER BY CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true AND Trashed__c =: true
                       ORDER BY CreatedDate
                       LIMIT 100];
     }
@@ -57,7 +93,13 @@ public with sharing class WhiteboardController {
 
             try {
                 delete goners;
-                getCompanyItems();              
+                if (indicator) {
+                    getCompanyItems();
+                    getCompanyTrash();
+                } else {
+                    getPersonalItems();
+                    getPersonalTrash();
+                }              
             }            
             catch(Exception ex) {
                 ApexPages.addMessages(ex);
@@ -69,7 +111,13 @@ public with sharing class WhiteboardController {
         List<Whiteboard_Item_Activity__c> goners = [SELECT Id, Name from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')];            
         try {
              delete goners;
-             getCompanyItems();
+             if (indicator) {
+                    getCompanyItems();
+                    getCompanyTrash();
+                } else {
+                    getPersonalItems();
+                    getPersonalTrash();
+                }  
         }
         catch (Exception ex) {
             ApexPages.addMessages(ex);

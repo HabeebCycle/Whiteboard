@@ -60,6 +60,14 @@
         <type>Checkbox</type>
     </fields>
     <fields>
+        <fullName>Trashed__c</fullName>
+        <defaultValue>false</defaultValue>
+        <description>True if the item has been designated as &apos;Trash&apos; and will be separated into a Trash grouping, False if the item is still in use.</description>
+        <externalId>false</externalId>
+        <label>Trashed</label>
+        <type>Checkbox</type>
+    </fields>
+    <fields>
         <fullName>Whiteboard_Item__c</fullName>
         <externalId>false</externalId>
         <label>Whiteboard Item</label>
