@@ -1,32 +1,15 @@
 <apex:page standardStylesheets="false" showHeader="true" sidebar="false" controller="WhiteboardController" id="thePage">
     <apex:stylesheet value="{!URLFOR($Resource.bootstrap, '/bootstrap/css/bootstrap.css')}"/>
     <apex:stylesheet value="{!URLFOR($Resource.bootstrap, '/bootstrap/css/bootstrap.min.css')}"/>
-    <script src="{!URLFOR($Resource.bootstrap_modal)}"/>
     <script src="{!URLFOR($Resource.jQueryLibrary)}"/>
-    <script type="text/javascript">        
-        var itemId;
-        var j$ = jQuery.noConflict();
-        function setWhiteboardId()
-        {
-            document.getElementById('thePage:activityForm:whiteboardId').value = itemId;
-            j$('#modal-from-dom-Activity-Company').modal('hide');
-        }
-    </script>
-    <script type="text/javascript">        
-        var itemIdPersonal;
-        var j$ = jQuery.noConflict();
-        function setWhiteboardIdPersonal()
-        {
-            document.getElementById('thePage:activityFormP:whiteboardIdPersonal').value = itemIdPersonal;
-            j$('#modal-from-dom-Activity-Personal').modal('hide');
-        }
-    </script>
+    <script src="{!URLFOR($Resource.bootstrap, '/bootstrap/js/bootstrap.js')}"/>
+
     <div class="container-fluid">
         <div class="row-fluid">
    			<div class="span2" style="border:right">
             	<p>Sidebar</p>    
         	</div>
-        	<div class="span10">
+        	<div class="span10" id="mainSection">
             	<div class="row">
             		<div class="span10" id="whiteboardButtons">
                         <apex:form >
@@ -39,71 +22,55 @@
                 <div class="row">
                     <div class="span10">
                         <apex:sectionHeader title="{!currentWhiteboard}" id="title"/>
-                        <a href="#wbItem" id="newItem" data-controls-modal="modal-from-dom-Item-Company" data-backdrop="true" class="btn btn-primary">New Item</a>
+                    	<button href="#myModal" role="button" class="btn" data-toggle="modal" data-backdrop="true">New Item</button>
                     </div>
-                </div>
-        
-                <div class="row">
-                    <div class="span10">
-                        <apex:repeat value="{!currentItems}" var="item" id="itemList">	<!-- Starts the repetition of the ITEMS -->
-                            <ul class="nav">
-                                <li><a href="/{!item.Id}" id="itemName" >{!item.Name}</a></li>
-                                <li><a href="#wbAct" id="newActLink" data-controls-modal="modal-from-dom-Activity-Company" data-backdrop="true" onclick="itemId='{!item.Id}'" >New Activity</a></li>
-                                <li>    
-                                    <apex:form >
-                                    <apex:commandButton reRender="companyPageBlock" action="{!deleteItem}" value="Trash" id="delete" style="text-decoration: underline">
-                                        <apex:param name="ItemId" value="{!item.Id}"/>
-                                    </apex:commandButton>
-                                    </apex:form>
-                                </li>
-                            </ul>
-                        </apex:repeat>	<!-- Ends the repetition of the ITEMS -->
+                    <!-- NEW ITEM MODAL -->
+                    <div id="myModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+                        <apex:form id="itemFormC">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                                <h3 id="myModalLabel">New Item</h3>
+                            </div>
+                            <div class="modal-body">
+                                <apex:inputField label="Name" value="{!Item.Name}" id="saveItemName"/>
+                            </div>
+                            <div class="modal-footer">
+                                <apex:commandButton styleClass="btn btn-primary" action="{!save}" value="Save"/>
+                                <apex:commandButton styleClass="btn" value="Cancel"/>
+                            </div>
+                        </apex:form>
                     </div>
+                    <!-- END MODAL -->
                 </div>
+                <br/>
+                <apex:outputPanel id="pageContent">
+                    <div class="row">
+                        <div class="span10">
+                            <apex:repeat value="{!currentItems}" var="item" id="itemList">	<!-- Starts the repetition of the ITEMS -->
+                                <div class="navbar" style="margin-bottom:0px">
+                                    <div class="navbar-inner">
+                                    <ul class="nav">
+                                        <li><a class="brand" href="/{!item.Id}" id="itemName" >{!item.Name}</a></li>
+                                    </ul>
+                                    <ul class="nav pull-right">
+                                        <li><a href="#wbAct" id="newActLink" data-controls-modal="modal-from-dom-Activity-Company" data-backdrop="true" onclick="itemId='{!item.Id}'" >New Activity</a></li>
+                                        <li>    
+                                            <apex:form >
+                                                <apex:commandButton action="{!deleteItem}" value="Trash" id="delete" reRender="pageContent" styleClass="btn-danger">
+                                                    <apex:param name="ItemId" value="{!item.Id}"/>
+                                                </apex:commandButton>
+                                            </apex:form>
+                                        </li>
+                                    </ul>
+                                    </div>
+                                </div>
+                            </apex:repeat>	<!-- Ends the repetition of the ITEMS -->
+                        </div>
+                    </div>
+                </apex:outputPanel>
             </div>
         </div>
-        
-        
-        <!-- ACTIVITY ADD modal box -->
-        <div id="modal-from-dom-Activity-Company" class="modal hide fade" style="display: none;">
-            <apex:form id="activityForm">
-                <apex:inputHidden id="whiteboardId" value="{!whiteboardId}"/>
-                <div class="modal-header">
-                    <h3>New Activity</h3>
-                </div>
-                <div class="modal-body">
-                    <apex:pageBlock >    
-                        <apex:pageBlockButtons location="bottom">
-                            <apex:commandButton reRender="companyPageBlock, activityForm" styleClass="btn" value="Save" onclick="setWhiteboardId(); j$('#modal-from-dom-Activity-Company').modal('hide');" action="{!saveAct}"/>
-                            <apex:commandButton reRender="activityForm" styleClass="btn" value="Cancel" onclick="j$('#modal-from-dom-Activity-Company').modal('hide');return false;"/>
-                        </apex:pageBlockButtons>
-                        <apex:pageBlockSection showHeader="false" id="wb_item_act_input">
-                            <apex:inputField label="Name" value="{!activity.Name}" id="n"/><br/>
-                            <apex:inputField label="Description" value="{!activity.Description__c}" id="a"/><br/>
-                            <apex:inputField label="Due Date" value="{!activity.Due_Date__c}" id="d"/><br/>
-                        </apex:pageBlockSection>
-                    </apex:pageBlock>
-                </div>
-            </apex:form>                    
-        </div>
-        
-        <!-- ITEM ADD modal box -->
-        <div id="modal-from-dom-Item-Company" class="modal hide fade" style="display: none;">
-            <apex:form id="itemFormC">
-                <div class="modal-header">
-                    <h3>New Item</h3>
-                </div>
-                <apex:pageBlock >
-                    <apex:pageBlockButtons location="bottom" styleClass="save_button">
-                        <apex:commandButton reRender="companyPageBlock, itemFormC" styleClass="btn" value="Save" onclick="j$('#modal-from-dom-Item-Company').modal('hide');" action="{!save}"/>
-                        <apex:commandButton styleClass="btn" value="Cancel" onclick="j$('#modal-from-dom-Item-Company').modal('hide');return false;"/>
-                    </apex:pageBlockButtons>
-                    <apex:pageBlockSection showHeader="false" id="wb_item_input">
-                        <apex:inputField label="Name" value="{!Item.Name}"/>
-                    </apex:pageBlockSection>
-                </apex:pageBlock>                
-            </apex:form>            
-        </div>
-    </div> <!-- ENDS THE COMPANY WHITEBOARD -->
+
+    </div> <!-- ENDS container-fluid -->
                
 </apex:page>
