@@ -21,38 +21,46 @@
             j$('#modal-from-dom-Activity-Personal').modal('hide');
         }
     </script>
-    
-    <div class="container">
-        <div id="pageBlock" class="row">
-            <div class="span12" id="whiteboardButtons">
-                <apex:form >
-                    <apex:commandButton styleClass="btn" id="switchToCompany" action="{!getCompanyItems}" value="Company Whiteboard" reRender=""/>
-                    <apex:commandButton styleClass="btn" id="switchToPersonal" action="{!getPersonalItems}" value="Personal Whiteboard"/>
-                </apex:form>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="span12">
-                <apex:sectionHeader title="{!currentWhiteboard}" id="title"/>
-                <a href="#wbItem" id="newItem" data-controls-modal="modal-from-dom-Item-Company" data-backdrop="true" class="btn btn-primary">New Item</a>
-            </div>
-        </div>
-        
-        <div class="row">
-            <apex:repeat value="{!currentItems}" var="item" id="itemList">	<!-- Starts the repetition of the ITEMS -->
-                <ul class="nav">
-                    <li><a href="/{!item.Id}" id="itemName" >{!item.Name}</a></li>
-                    <li><a href="#wbAct" id="newActLink" data-controls-modal="modal-from-dom-Activity-Company" data-backdrop="true" onclick="itemId='{!item.Id}'" >New Activity</a></li>
-                    <li>    
+    <div class="container-fluid">
+        <div class="row-fluid">
+   			<div class="span2" style="border:right">
+            	<p>Sidebar</p>    
+        	</div>
+        	<div class="span10">
+            	<div class="row">
+            		<div class="span10" id="whiteboardButtons">
                         <apex:form >
-                        <apex:commandButton reRender="companyPageBlock" action="{!deleteItem}" value="Trash" id="delete" style="text-decoration: underline">
-                            <apex:param name="ItemId" value="{!item.Id}"/>
-                        </apex:commandButton>
+                            <apex:commandButton styleClass="btn" id="switchToCompany" action="{!getCompanyItems}" value="Company Whiteboard" reRender=""/>
+                            <apex:commandButton styleClass="btn" id="switchToPersonal" action="{!getPersonalItems}" value="Personal Whiteboard"/>
                         </apex:form>
-                    </li>
-                </ul>
-            </apex:repeat>	<!-- Ends the repetition of the ITEMS -->
+                    </div>
+            	</div>
+
+                <div class="row">
+                    <div class="span10">
+                        <apex:sectionHeader title="{!currentWhiteboard}" id="title"/>
+                        <a href="#wbItem" id="newItem" data-controls-modal="modal-from-dom-Item-Company" data-backdrop="true" class="btn btn-primary">New Item</a>
+                    </div>
+                </div>
+        
+                <div class="row">
+                    <div class="span10">
+                        <apex:repeat value="{!currentItems}" var="item" id="itemList">	<!-- Starts the repetition of the ITEMS -->
+                            <ul class="nav">
+                                <li><a href="/{!item.Id}" id="itemName" >{!item.Name}</a></li>
+                                <li><a href="#wbAct" id="newActLink" data-controls-modal="modal-from-dom-Activity-Company" data-backdrop="true" onclick="itemId='{!item.Id}'" >New Activity</a></li>
+                                <li>    
+                                    <apex:form >
+                                    <apex:commandButton reRender="companyPageBlock" action="{!deleteItem}" value="Trash" id="delete" style="text-decoration: underline">
+                                        <apex:param name="ItemId" value="{!item.Id}"/>
+                                    </apex:commandButton>
+                                    </apex:form>
+                                </li>
+                            </ul>
+                        </apex:repeat>	<!-- Ends the repetition of the ITEMS -->
+                    </div>
+                </div>
+            </div>
         </div>
         
         
@@ -98,5 +106,4 @@
         </div>
     </div> <!-- ENDS THE COMPANY WHITEBOARD -->
                
-
 </apex:page>
