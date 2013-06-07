@@ -122,7 +122,7 @@
                 </div> <!-- ENDS trashed secion -->
                 </apex:outputPanel>
                 
-                <!-- Begin Completed Goals Section -->
+                <!-- Begin Completed Goals Section (Not functional yet)-->
                 <hr/>
                 <apex:outputPanel id="completedContent">
                 <div class="row">
@@ -149,7 +149,7 @@
                             </div>
                         </apex:repeat>  <!-- Ends the repetition of the ITEMS -->
                     </div>
-                </div> <!-- ENDS trashed secion -->
+                </div> <!-- ENDS Completed Goals section -->
                 </apex:outputPanel>
                 
             </div> <!-- ENDS main page section -->
