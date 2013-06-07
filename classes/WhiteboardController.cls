@@ -29,7 +29,7 @@ public with sharing class WhiteboardController {
     public void getCompanyItems() {
         //currentWhiteboard = 'Company Whiteboard';
         currentItems = [SELECT Name, Id, Trashed__c,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id
                           FROM Whiteboard_Item_Activities__r
                           WHERE PersonalItem__c =: false 
                           ORDER BY CreatedDate 
@@ -47,7 +47,7 @@ public with sharing class WhiteboardController {
     public void getCompanyTrash() {
         //currentWhiteboard = 'Company Trash';  
         trashItems = [SELECT Name, Id, Trashed__c,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id
                           FROM Whiteboard_Item_Activities__r
                           WHERE PersonalItem__c =: false 
                           ORDER BY CreatedDate 
@@ -61,7 +61,7 @@ public with sharing class WhiteboardController {
     public void getPersonalItems() {
         currentWhiteboard = 'Personal Whiteboard';
         currentItems = [SELECT Name, Id, Trashed__c,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id
                           FROM Whiteboard_Item_Activities__r
                           WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
                           ORDER BY CreatedDate 
@@ -161,7 +161,7 @@ public with sharing class WhiteboardController {
     public Whiteboard_Item__c[] getWhiteboard() {
 
         return [SELECT Name, Id,
-                     (SELECT Name, Due_Date__c, Description__c
+                     (SELECT Name, Due_Date__c, Description__c, Id
                       FROM Whiteboard_Item_Activities__r
                       WHERE PersonalItem__c =: false 
                       ORDER BY CreatedDate 
@@ -175,7 +175,7 @@ public with sharing class WhiteboardController {
     public Whiteboard_Item__c[] getPersonalWhiteboard() {
     
         return [SELECT Name, Id,
-                         (SELECT Name, Due_Date__c, Description__c
+                         (SELECT Name, Due_Date__c, Description__c, Id
                           FROM Whiteboard_Item_Activities__r
                           WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
                           ORDER BY CreatedDate 
