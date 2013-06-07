@@ -39,6 +39,13 @@
     <enableHistory>false</enableHistory>
     <enableReports>false</enableReports>
     <fields>
+        <fullName>Completed__c</fullName>
+        <defaultValue>false</defaultValue>
+        <externalId>false</externalId>
+        <label>Completed</label>
+        <type>Checkbox</type>
+    </fields>
+    <fields>
         <fullName>PersonalItem__c</fullName>
         <defaultValue>false</defaultValue>
         <externalId>false</externalId>
