@@ -8,6 +8,7 @@ public with sharing class WhiteboardController {
     
     public List<Whiteboard_Item__c> currentItems { get; set;}
     public List<Whiteboard_Item__c> trashItems { get; set; }
+    public List<Whiteboard_Item__c> completedItems { get; set; }
     
     public String currentWhiteboard { get; set; }
     public String currentWhiteboardTrash { get; set; }
@@ -18,6 +19,7 @@ public with sharing class WhiteboardController {
     public WhiteboardController() {
         currentItems = new List<Whiteboard_Item__c>();
         trashItems = new List<Whiteboard_Item__c>();
+        completedItems = new List<Whiteboard_Item__c>();
         
         currentWhiteboard = 'Company Whiteboard';
         Item = new Whiteboard_Item__c();
@@ -40,12 +42,12 @@ public with sharing class WhiteboardController {
                       LIMIT 100];
         indicator = true;
         getCompanyTrash();
+        getCompanyCompleted();
         currentWhiteboard = 'Company Whiteboard';
         currentWhiteboardTrash = 'Company Whiteboard Trash';
     }              
           
-    public void getCompanyTrash() {
-        //currentWhiteboard = 'Company Trash';  
+    public void getCompanyTrash() { 
         trashItems = [SELECT Name, Id, Trashed__c,
                          (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id
                           FROM Whiteboard_Item_Activities__r
@@ -54,6 +56,19 @@ public with sharing class WhiteboardController {
                           LIMIT 30)
                       FROM Whiteboard_Item__c
                       WHERE PersonalItem__c =: false AND Trashed__c =: true
+                      ORDER BY CreatedDate
+                      LIMIT 100];   
+    }
+    
+    public void getCompanyCompleted() {  
+        completedItems = [SELECT Name, Id, Completed__c,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false 
+                          ORDER BY CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: true
                       ORDER BY CreatedDate
                       LIMIT 100];   
     }
@@ -72,6 +87,7 @@ public with sharing class WhiteboardController {
                       LIMIT 100];
         indicator = false;
         getPersonalTrash();
+        getPersonalCompleted();
     }
     
     public void getPersonalTrash() {
@@ -87,9 +103,70 @@ public with sharing class WhiteboardController {
                       LIMIT 100];
     }
     
+    public void getPersonalCompleted() {  
+                      
+        completedItems = [SELECT Name, Id, Completed__c,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
+                          ORDER BY CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true AND Completed__c =: true
+                      ORDER BY CreatedDate
+                      LIMIT 100];                      
+    }
+    
     // ********************************************************************************************************************************
     
     // ************************ DELETING ITEMS AND ACTIVITIES ****************************************************************
+
+    public void completedItem() {
+        
+        //Get the selected item
+        List<Whiteboard_Item__c> itemsToComplete = [SELECT id, name from Whiteboard_Item__c where id = :ApexPages.currentpage().getparameters().get('ItemId')];
+        
+        //Check the "Completed" checkbox on that item
+        for(Integer i=0; i < itemsToComplete.size(); i++)
+        {
+            itemsToComplete[i].Completed__c = true;
+        }
+        update itemsToComplete;
+        
+        if (indicator) {
+            getCompanyItems();
+            getCompanyTrash();
+        } else {
+            getPersonalItems();
+            getPersonalTrash();
+        } 
+        
+        return;
+    }
+    
+    public void unCompleteItem() {
+        
+        //Get the selected item
+        List<Whiteboard_Item__c> itemsToUnComplete = [SELECT id, name from Whiteboard_Item__c where id = :ApexPages.currentpage().getparameters().get('ItemId')];
+        
+        //UnCheck the "Completed" checkbox on that item
+        for(Integer i=0; i < itemsToUnComplete.size(); i++)
+        {
+            itemsToUnComplete[i].Completed__c = false;
+        }
+                    
+        update itemsToUnComplete;
+        
+        if (indicator) {
+            getCompanyItems();
+            getCompanyTrash();
+        } else {
+            getPersonalItems();
+            getPersonalTrash();
+        } 
+        
+        return;
+    }
 
     public void trashItem() {
         
@@ -102,6 +179,16 @@ public with sharing class WhiteboardController {
             itemsToTrash[i].Trashed__c = true;
         }
         update itemsToTrash;
+        
+        if (indicator) {
+            getCompanyItems();
+            getCompanyTrash();
+        } else {
+            getPersonalItems();
+            getPersonalTrash();
+        } 
+        
+        return;
     }
     
     public void unTrashItem() {
@@ -116,6 +203,16 @@ public with sharing class WhiteboardController {
         }
                     
         update itemsToUnTrash;
+
+        if (indicator) {
+            getCompanyItems();
+            getCompanyTrash();
+        } else {
+            getPersonalItems();
+            getPersonalTrash();
+        } 
+             
+        return;
     }
 
     public void deleteItem() {

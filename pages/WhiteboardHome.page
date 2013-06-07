@@ -7,23 +7,23 @@
 
     <div class="container-fluid">
         <div class="row-fluid">
-   			<div class="span2" style="border:right">
-            	<p>Sidebar</p>    
-        	</div>
-        	<div class="span10" id="mainSection">
-            	<div class="row">
-            		<div class="span10" id="whiteboardButtons">
+            <div class="span2" style="border:right">
+                <p>Sidebar</p>    
+            </div>
+            <div class="span10" id="mainSection">
+                <div class="row">
+                    <div class="span10" id="whiteboardButtons">
                         <apex:form >
                             <apex:commandButton styleClass="btn" id="switchToCompany" action="{!getCompanyItems}" value="Company Whiteboard" reRender=""/>
                             <apex:commandButton styleClass="btn" id="switchToPersonal" action="{!getPersonalItems}" value="Personal Whiteboard"/>
                         </apex:form>
                     </div>
-            	</div>
+                </div>
 
                 <div class="row">
                     <div class="span10">
                         <apex:sectionHeader title="{!currentWhiteboard}" id="title"/>
-                    	<button href="#myModal" role="button" class="btn" data-toggle="modal" data-backdrop="true">New Item</button>
+                        <button href="#myModal" role="button" class="btn" data-toggle="modal" data-backdrop="true">New Item</button>
                     </div>
                     <!-- NEW ITEM MODAL -->
                     <div id="myModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
@@ -54,6 +54,20 @@
                                       <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" href="#{!item.Id}">
                                           {!item.Name}
                                       </a>
+                                    <ul class="nav pull-right">
+
+                                        <li><button href="#myModalAct" role="button" class="btn" data-toggle="modal" data-backdrop="true" onclick="itemId='{!item.Id}'">New Activity</button></li>
+                                        <li>    
+                                            <apex:form >
+                                                <apex:commandButton action="{!completedItem}" value="Completed" id="complete" reRender="pageContent, trashContent" styleClass="btn-danger;" >
+                                                    <apex:param name="ItemId" value="{!item.Id}"/>
+                                                </apex:commandButton>
+                                                <apex:commandButton action="{!trashItem}" value="Trash" id="delete" reRender="pageContent, trashContent" styleClass="btn-danger" onclick="if(!confirm('Are you sure you want to send this item to the trash?')){return;};">
+                                                    <apex:param name="ItemId" value="{!item.Id}"/>
+                                                </apex:commandButton>
+                                            </apex:form>
+                                        </li>
+                                    </ul>
                                     </div>
                                     <div id="{!item.Id}" class="accordion-body collapse">
                                         <apex:repeat value="{!item.Whiteboard_Item_Activities__r}" var="act" id="actList">
@@ -89,34 +103,64 @@
                 </div>
                 <!-- END MODAL -->
                 <hr/>
-        		<apex:outputPanel id="trashContent">
-        		<div class="row">
-        			<div class="span10">
-            			<apex:repeat value="{!trashItems}" var="item" id="trashItemList">  <!-- Starts the repetition of the ITEMS -->
-            				<div class="navbar" style="margin-bottom:0px">
-            					<div class="navbar-inner">
-                					<ul class="nav">
-                    					<li><a class="brand" href="/{!item.Id}" id="itemName" style="color:black">{!item.Name}</a></li>
-                    				</ul>
-                    				<ul class="nav pull-right">
-                    					<li>    
-                      	  					<apex:form > <!-- confirmation popup to untrash and delete item -->
-                       	 						<apex:commandButton reRender="trashContent, pageContent" action="{!unTrashItem}" value="Restore" id="untrash" onclick="if (!confirm('Are you sure you want to pull this out of the trash?')) {return;};">                                                                                                                                          
-                       	     						<apex:param name="ItemId" value="{!item.Id}"/>
-                        						</apex:commandButton>
-                        						<apex:commandButton reRender="trashContent" action="{!deleteItem}" value="Delete" id="delete" onclick="if (!confirm('Are you sure you want to delete this item forever?')) {return;};">                       
-                            						<apex:param name="ItemId" value="{!item.Id}"/>
-                        						</apex:commandButton>
-                        					</apex:form>
-                    					</li>
-                					</ul>
-                				</div>
-                			</div>
-            			</apex:repeat>  <!-- Ends the repetition of the ITEMS -->
-            		</div>
-        		</div> <!-- ENDS trashed secion -->
-        		</apex:outputPanel>
-        		
+                <apex:outputPanel id="trashContent">
+                <div class="row">
+                    <div class="span10">
+                        <apex:repeat value="{!trashItems}" var="item" id="trashItemList">  <!-- Starts the repetition of the ITEMS -->
+                            <div class="navbar" style="margin-bottom:0px">
+                                <div class="navbar-inner">
+                                    <ul class="nav">
+                                        <li><a class="brand" href="/{!item.Id}" id="itemName" style="color:black">{!item.Name}</a></li>
+                                    </ul>
+                                    <ul class="nav pull-right">
+                                        <li>    
+                                            <apex:form > <!-- confirmation popup to untrash and delete item -->
+                                                <apex:commandButton reRender="trashContent, pageContent" action="{!unTrashItem}" value="Restore" id="untrash" onclick="if (!confirm('Are you sure you want to pull this out of the trash?')) {return;};">                                                                                                                                          
+                                                    <apex:param name="ItemId" value="{!item.Id}"/>
+                                                </apex:commandButton>
+                                                <apex:commandButton reRender="trashContent" action="{!deleteItem}" value="Delete" id="delete" onclick="if (!confirm('Are you sure you want to delete this item forever?')) {return;};">                       
+                                                    <apex:param name="ItemId" value="{!item.Id}"/>
+                                                </apex:commandButton>
+                                            </apex:form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </apex:repeat>  <!-- Ends the repetition of the ITEMS -->
+                    </div>
+                </div> <!-- ENDS trashed secion -->
+                </apex:outputPanel>
+                
+                <!-- Begin Completed Goals Section (Not functional yet)-->
+                <hr/>
+                <apex:outputPanel id="completedContent">
+                <div class="row">
+                    <div class="span10">
+                        <apex:repeat value="{!completedItems}" var="item" id="completedItemList">  <!-- Starts the repetition of the ITEMS -->
+                            <div class="navbar" style="margin-bottom:0px">
+                                <div class="navbar-inner">
+                                    <ul class="nav">
+                                        <li><a class="brand" href="/{!item.Id}" id="itemName" style="color:black">{!item.Name}</a></li>
+                                    </ul>
+                                    <ul class="nav pull-right">
+                                        <li>    
+                                            <apex:form > <!-- confirmation popup to unComplete and delete item -->
+                                                <apex:commandButton reRender="trashContent, pageContent" action="{!unCompleteItem}" value="Restore" id="uncomplete" onclick="if (!confirm('Are you sure you want to mark this as NOT completed?')) {return;};">                                                                                                                                          
+                                                    <apex:param name="ItemId" value="{!item.Id}"/>
+                                                </apex:commandButton>
+                                                <apex:commandButton reRender="trashContent" action="{!deleteItem}" value="Delete" id="delete" onclick="if (!confirm('Are you sure you want to delete this item forever?')) {return;};">                       
+                                                    <apex:param name="ItemId" value="{!item.Id}"/>
+                                                </apex:commandButton>
+                                            </apex:form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </apex:repeat>  <!-- Ends the repetition of the ITEMS -->
+                    </div>
+                </div> <!-- ENDS Completed Goals section -->
+                </apex:outputPanel>
+                
             </div> <!-- ENDS main page section -->
         </div> <!-- ENDS row fluid -->
 
