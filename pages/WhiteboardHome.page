@@ -47,7 +47,7 @@
                     <li>    
                         <apex:form >
                         <!-- confirmation popup to trash item -->
-                        <apex:commandButton reRender="companyPageBlock" action="{!deleteItem}" value="Trash" id="delete" style="text-decoration: underline" onclick="if (!confirm('Are you sure you want to delete this?')) {return;};">                                                                     
+                        <apex:commandButton reRender="companyPageBlock" action="{!trashItem}" value="Trash" id="delete" style="text-decoration: underline" onclick="if (!confirm('Are you sure you want to send this item to the trash?')) {return;};">                                                                     
                             <apex:param name="ItemId" value="{!item.Id}"/>
                         </apex:commandButton>
                         </apex:form>

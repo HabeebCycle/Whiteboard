@@ -87,6 +87,34 @@ public with sharing class WhiteboardController {
     
     // ************************ DELETING ITEMS AND ACTIVITIES ****************************************************************
 
+    public void trashItem() {
+        
+        //Get the selected item
+        List<Whiteboard_Item__c> itemsToTrash = [SELECT id, name from Whiteboard_Item__c where id = :ApexPages.currentpage().getparameters().get('ItemId')];
+        
+        //Check the "Trash" checkbox on that item
+        for(Integer i=0; i < itemsToTrash.size(); i++)
+        {
+            itemsToTrash[i].Trashed__c = true;
+            
+            update itemsToTrash[i];
+        }
+    }
+    
+    public void unTrashItem() {
+        
+        //Get the selected item
+        List<Whiteboard_Item__c> itemsToUnTrash = [SELECT id, name from Whiteboard_Item__c where id = :ApexPages.currentpage().getparameters().get('ItemId')];
+        
+        //UnCheck the "Trash" checkbox on that item
+        for(Integer i=0; i < itemsToUnTrash.size(); i++)
+        {
+            itemsToUnTrash[i].Trashed__c = false;
+            
+            update itemsToUnTrash[i];
+        }
+    }
+
     public void deleteItem() {
 
         List<Whiteboard_Item__c> goners = [SELECT id, name from Whiteboard_Item__c where id = :ApexPages.currentpage().getparameters().get('ItemId')];
