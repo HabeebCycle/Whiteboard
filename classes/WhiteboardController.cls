@@ -202,6 +202,9 @@ public with sharing class WhiteboardController {
     
     public PageReference saveAct() {
         activity.Whiteboard_Item__c = WhiteboardId;
+        if (activity.Name == '' || activity.Name == null) {
+            return null;
+        }
         try {
             insert activity;
             activity = new Whiteboard_Item_Activity__c();
