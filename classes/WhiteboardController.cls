@@ -8,6 +8,7 @@ public with sharing class WhiteboardController {
     
     public List<Whiteboard_Item__c> currentItems { get; set;}
     public List<Whiteboard_Item__c> trashItems { get; set; }
+    public List<Whiteboard_Item__c> completedItems { get; set; }
     
     public String currentWhiteboard { get; set; }
     public String currentWhiteboardTrash { get; set; }
@@ -91,6 +92,53 @@ public with sharing class WhiteboardController {
     
     // ************************ DELETING ITEMS AND ACTIVITIES ****************************************************************
 
+    public void completedItem() {
+        
+        //Get the selected item
+        List<Whiteboard_Item__c> itemsToComplete = [SELECT id, name from Whiteboard_Item__c where id = :ApexPages.currentpage().getparameters().get('ItemId')];
+        
+        //Check the "Completed" checkbox on that item
+        for(Integer i=0; i < itemsToComplete.size(); i++)
+        {
+            itemsToComplete[i].Completed__c = true;
+        }
+        update itemsToComplete;
+        
+        if (indicator) {
+            getCompanyItems();
+            getCompanyTrash();
+        } else {
+            getPersonalItems();
+            getPersonalTrash();
+        } 
+        
+        return;
+    }
+    
+    public void unCompleteItem() {
+        
+        //Get the selected item
+        List<Whiteboard_Item__c> itemsToUnComplete = [SELECT id, name from Whiteboard_Item__c where id = :ApexPages.currentpage().getparameters().get('ItemId')];
+        
+        //UnCheck the "Completed" checkbox on that item
+        for(Integer i=0; i < itemsToUnComplete.size(); i++)
+        {
+            itemsToUnComplete[i].Completed__c = false;
+        }
+                    
+        update itemsToUnComplete;
+        
+        if (indicator) {
+            getCompanyItems();
+            getCompanyTrash();
+        } else {
+            getPersonalItems();
+            getPersonalTrash();
+        } 
+        
+        return;
+    }
+
     public void trashItem() {
         
         //Get the selected item
@@ -102,6 +150,16 @@ public with sharing class WhiteboardController {
             itemsToTrash[i].Trashed__c = true;
         }
         update itemsToTrash;
+        
+        if (indicator) {
+            getCompanyItems();
+            getCompanyTrash();
+        } else {
+            getPersonalItems();
+            getPersonalTrash();
+        } 
+        
+        return;
     }
     
     public void unTrashItem() {
@@ -116,6 +174,16 @@ public with sharing class WhiteboardController {
         }
                     
         update itemsToUnTrash;
+
+        if (indicator) {
+            getCompanyItems();
+            getCompanyTrash();
+        } else {
+            getPersonalItems();
+            getPersonalTrash();
+        } 
+             
+        return;
     }
 
     public void deleteItem() {
