@@ -56,6 +56,36 @@
             </apex:repeat>  <!-- Ends the repetition of the ITEMS -->
         </div>
         
+        <!-- Display trashed items -->
+        
+        <div class="row">
+            <div class="span12">
+                <apex:sectionHeader title="{!currentWhiteboardTrash}" id="trashTitle"/>
+            </div>                   
+        </div>
+        
+        <div class="row">
+            <apex:repeat value="{!trashItems}" var="item" id="trashItemList">  <!-- Starts the repetition of the ITEMS -->
+                <ul class="nav">
+                    <li><a href="/{!item.Id}" id="itemName" >{!item.Name}</a></li>
+                    <li><a href="#wbAct" id="newActLink" data-controls-modal="modal-from-dom-Activity-Company" data-backdrop="true" onclick="itemId='{!item.Id}'" >New Activity</a></li>
+                    <li>    
+                        <apex:form >
+                        <!-- confirmation popup to untrash and delete item -->
+                        <apex:commandButton reRender="companyPageBlock" action="{!unTrashItem}" value="UnTrash This Item" id="untrash" style="text-decoration: underline" onclick="if (!confirm('Are you sure you want to pull this out of the trash?')) {return;};">                                                                                                                                          
+                            <apex:param name="ItemId" value="{!item.Id}"/>
+                        </apex:commandButton>
+                        <apex:commandButton reRender="companyPageBlock" action="{!deleteItem}" value="Delete Forever" id="delete" style="text-decoration: underline" onclick="if (!confirm('Are you sure you want to delete this item forever?')) {return;};">                       
+                            <apex:param name="ItemId" value="{!item.Id}"/>
+                        </apex:commandButton>
+                        </apex:form>
+                    </li>
+                </ul>
+            </apex:repeat>  <!-- Ends the repetition of the ITEMS -->
+        </div>
+        
+        <!-- END OF Display trashed items -->
+        
         
         <!-- ACTIVITY ADD modal box -->
         <div id="modal-from-dom-Activity-Company" class="modal hide fade" style="display: none;">

@@ -10,6 +10,7 @@ public with sharing class WhiteboardController {
     public List<Whiteboard_Item__c> trashItems { get; set; }
     
     public String currentWhiteboard { get; set; }
+    public String currentWhiteboardTrash { get; set; }
     public Boolean indicator { get; set; }  // true if company, false if personal
 
     // ************************ SETTING UP CONTROLLER AND POPULATING LISTS ****************************************************************
@@ -26,7 +27,7 @@ public with sharing class WhiteboardController {
     }
     
     public void getCompanyItems() {
-        currentWhiteboard = 'Company Whiteboard';
+        //currentWhiteboard = 'Company Whiteboard';
         currentItems = [SELECT Name, Id, Trashed__c,
                          (SELECT Name, Due_Date__c, Description__c, Trashed__c
                           FROM Whiteboard_Item_Activities__r
@@ -39,9 +40,12 @@ public with sharing class WhiteboardController {
                       LIMIT 100];
         indicator = true;
         getCompanyTrash();
+        currentWhiteboard = 'Company Whiteboard';
+        currentWhiteboardTrash = 'Company Whiteboard Trash';
     }              
           
-    public void getCompanyTrash() {   
+    public void getCompanyTrash() {
+        //currentWhiteboard = 'Company Trash';  
         trashItems = [SELECT Name, Id, Trashed__c,
                          (SELECT Name, Due_Date__c, Description__c, Trashed__c
                           FROM Whiteboard_Item_Activities__r
