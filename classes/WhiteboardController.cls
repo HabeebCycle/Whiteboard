@@ -100,9 +100,8 @@ public with sharing class WhiteboardController {
         for(Integer i=0; i < itemsToTrash.size(); i++)
         {
             itemsToTrash[i].Trashed__c = true;
-            
-            update itemsToTrash[i];
         }
+        update itemsToTrash;
     }
     
     public void unTrashItem() {
@@ -114,9 +113,9 @@ public with sharing class WhiteboardController {
         for(Integer i=0; i < itemsToUnTrash.size(); i++)
         {
             itemsToUnTrash[i].Trashed__c = false;
-            
-            update itemsToUnTrash[i];
         }
+                    
+        update itemsToUnTrash;
     }
 
     public void deleteItem() {
