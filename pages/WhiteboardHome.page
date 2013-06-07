@@ -46,6 +46,7 @@
                     <li><a href="#wbAct" id="newActLink" data-controls-modal="modal-from-dom-Activity-Company" data-backdrop="true" onclick="itemId='{!item.Id}'" >New Activity</a></li>
                     <li>    
                         <apex:form >
+                        <!-- confirmation popup to trash item -->
                         <apex:commandButton reRender="companyPageBlock" action="{!deleteItem}" value="Trash" id="delete" style="text-decoration: underline" onclick="if (!confirm('Are you sure you want to delete this?')) {return;};">                                                                     
                             <apex:param name="ItemId" value="{!item.Id}"/>
                         </apex:commandButton>
