@@ -1,15 +1,15 @@
 <apex:page standardStylesheets="false" showHeader="true" sidebar="false" controller="WhiteboardController" id="thePage">
     <apex:stylesheet value="{!URLFOR($Resource.bootstrap, '/bootstrap/css/bootstrap.css')}"/>
-    <apex:stylesheet value="{!URLFOR($Resource.bootstrap, '/bootstrap/css/bootstrap.min.css')}"/>
     <apex:stylesheet value="{!URLFOR($Resource.WBStyles, '/css/newStyle.css')}"/>
     <script src="{!URLFOR($Resource.jQueryLibrary)}"/>
     <script src="{!URLFOR($Resource.bootstrap, '/bootstrap/js/bootstrap.js')}"/>
-
+    
     <div class="container-fluid">
         <div class="row-fluid">
             <div class="span2" style="border:right">
                 <p>Sidebar</p>    
             </div>
+            <apex:outputPanel id="wholePage">
             <div class="span10" id="mainSection">
                 <div class="row">
                     <div class="span10" id="whiteboardButtons">
@@ -23,7 +23,7 @@
                 <div class="row">
                     <div class="span10">
                         <apex:sectionHeader title="{!currentWhiteboard}" id="title"/>
-                        <button href="#myModal" role="button" class="btn" data-toggle="modal" data-backdrop="true">New Item</button>
+                        <button href="#myModal" role="button" class="btn" data-toggle="modal" data-backdrop="false">New Item</button>
                     </div>
                     <!-- NEW ITEM MODAL -->
                     <div id="myModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
@@ -47,36 +47,49 @@
                 <apex:outputPanel id="pageContent">
                     <div class="row">
                         <div class="span10">
-                            <div class="accordion" id="accordion2">
+                            <div class="accordion" id="accordion2" style="margin-bottom: 0px;">
                                 <apex:repeat value="{!currentItems}" var="item" id="itemList">	<!-- Starts the repetition of the ITEMS -->
-                                  <div class="accordion-group">
-                                    <div class="accordion-heading">
-                                      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" href="#{!item.Id}">
-                                          {!item.Name}
-                                      </a>
-                                    <ul class="nav pull-right">
-
-                                        <li><button href="#myModalAct" role="button" class="btn" data-toggle="modal" data-backdrop="true" onclick="itemId='{!item.Id}'">New Activity</button></li>
-                                        <li>    
-                                            <apex:form >
-                                                <apex:commandButton action="{!completedItem}" value="Completed" id="complete" reRender="pageContent, trashContent" styleClass="btn-danger;" >
-                                                    <apex:param name="ItemId" value="{!item.Id}"/>
-                                                </apex:commandButton>
-                                                <apex:commandButton action="{!trashItem}" value="Trash" id="delete" reRender="pageContent, trashContent" styleClass="btn-danger" onclick="if(!confirm('Are you sure you want to send this item to the trash?')){return;};">
-                                                    <apex:param name="ItemId" value="{!item.Id}"/>
-                                                </apex:commandButton>
-                                            </apex:form>
-                                        </li>
-                                    </ul>
-                                    </div>
-                                    <div id="{!item.Id}" class="accordion-body collapse">
-                                        <apex:repeat value="{!item.Whiteboard_Item_Activities__r}" var="act" id="actList">
-                                          <div class="accordion-inner">
-                                            {!act.Name}
-                                          </div>
-                                        </apex:repeat>
-                                    </div>
-                                  </div>
+                                  	<div class="accordion-group itemBar">
+                                      	<div class="nav pull-right buttonLine">
+                                        	<apex:form >
+                                            <button href="#myModalAct" role="button" class="btn bootstrapButton itemButton" data-toggle="modal" data-backdrop="false" onclick="itemId='{!item.Id}'">New Activity</button>
+                                            <apex:commandButton action="{!completedItem}" value="Completed" id="complete" reRender="wholePage" styleClass="btn btn-success itemButton" >
+                                                <apex:param name="ItemId" value="{!item.Id}"/>
+                                            </apex:commandButton>
+                                            <apex:commandButton action="{!trashItem}" value="Trash" id="delete" reRender="wholePage" styleClass="btn btn-danger itemButton" onclick="if(!confirm('Are you sure you want to send this item to the trash?')){return;};">
+                                                <apex:param name="ItemId" value="{!item.Id}"/>
+                                            </apex:commandButton>
+                                          </apex:form>
+                                        </div>
+                                    	<div class="accordion-heading" ondblclick="window.location='/{!item.Id}'">
+                                      		<a class="accordion-toggle itemTitle" data-toggle="collapse" data-parent="#accordion2" href="#{!item.Id}">{!item.Name}</a> 
+                                    	</div>
+                                    	<div id="{!item.Id}" class="accordion-body collapse">
+                                        	<apex:repeat value="{!item.Whiteboard_Item_Activities__r}" var="act" id="actList">
+                                          		<div class="accordion-inner activityRow">
+                                              		<!-- ITEM INNER ACCORDION -->
+                                                    <div class="accordion-heading" ondblclick="window.location='/{!act.Id}'">
+      													<a class="accordion-toggle activityTitle" data-toggle="collapse" data-parent="#accordion3" href="#{!act.Id}">
+                                                            {!act.Name}
+                                                        </a>
+                                                    </div>
+                                                    <div id="{!act.Id}" class="accordion-body collapse">
+                                                        <div class="accordion-inner">
+                                                            <ul class="listWrapper">
+                                                                <div class="activityDescription">
+                                                                    <li>{!act.Description__c}</li>
+                                                                </div>
+                                                                <div class="activityDate">
+                                                                    <li><apex:outputField value="{!act.Due_Date__c}"/></li>
+                                                                </div>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                              		<!-- END ACCORDION -->
+                                          		</div>
+                                        	</apex:repeat>
+                                    	</div>
+                                  	</div>
                                 </apex:repeat>
                             </div>
                         </div>
@@ -102,66 +115,93 @@
                     </apex:form>
                 </div>
                 <!-- END MODAL -->
+                
                 <hr/>
+                
                 <apex:outputPanel id="trashContent">
                 <div class="row">
                     <div class="span10">
-                        <apex:repeat value="{!trashItems}" var="item" id="trashItemList">  <!-- Starts the repetition of the ITEMS -->
-                            <div class="navbar" style="margin-bottom:0px">
-                                <div class="navbar-inner">
-                                    <ul class="nav">
-                                        <li><a class="brand" href="/{!item.Id}" id="itemName" style="color:black">{!item.Name}</a></li>
-                                    </ul>
-                                    <ul class="nav pull-right">
-                                        <li>    
-                                            <apex:form > <!-- confirmation popup to untrash and delete item -->
-                                                <apex:commandButton reRender="trashContent, pageContent" action="{!unTrashItem}" value="Restore" id="untrash" onclick="if (!confirm('Are you sure you want to pull this out of the trash?')) {return;};">                                                                                                                                          
-                                                    <apex:param name="ItemId" value="{!item.Id}"/>
-                                                </apex:commandButton>
-                                                <apex:commandButton reRender="trashContent" action="{!deleteItem}" value="Delete" id="delete" onclick="if (!confirm('Are you sure you want to delete this item forever?')) {return;};">                       
-                                                    <apex:param name="ItemId" value="{!item.Id}"/>
-                                                </apex:commandButton>
-                                            </apex:form>
-                                        </li>
-                                    </ul>
+                        <div class="accordion" id="accordion4">
+                            <apex:repeat value="{!trashItems}" var="item" id="trashItemList">	<!-- Starts the repetition of the ITEMS -->
+                            	<div class="accordion-group itemBarTrash">
+                                    <div class="nav pull-right buttonLine">
+                                        <apex:form >
+                                            <apex:commandButton reRender="wholePage" action="{!unTrashItem}" value="Restore" id="untrash" onclick="if (!confirm('Are you sure you want to pull this out of the trash?')) {return;};" styleClass="btn itemButton" >
+                                                <apex:param name="ItemId" value="{!item.Id}"/>
+                                            </apex:commandButton>
+                                            <apex:commandButton action="{!deleteItem}" value="Delete" id="delete" reRender="wholePage" styleClass="btn btn-danger itemButton" onclick="if (!confirm('Are you sure you want to delete this item forever?')) {return;};">
+                                                <apex:param name="ItemId" value="{!item.Id}"/>
+                                            </apex:commandButton>
+                                        </apex:form>
+                                     </div>
+                                    <div class="accordion-heading" ondblclick="window.location='/{!item.Id}'">
+                                    	<a class="accordion-toggle itemTitle" data-toggle="collapse" data-parent="#accordion4" href="#{!item.Id}">
+                                        	{!item.Name}
+                                    	</a> 
+                                    </div>
+                                    <div id="{!item.Id}" class="accordion-body collapse">
+                                        <apex:repeat value="{!item.Whiteboard_Item_Activities__r}" var="act" id="actList">
+                                          <div class="accordion-inner activityRow">
+                                              <!-- ITEM INNER ACCORDION -->
+                                              <div class="accordion-heading" ondblclick="window.location='/{!act.Id}'">
+                                                  <a class="accordion-toggle activityTitle" data-toggle="collapse" data-parent="#accordion5" href="#{!act.Id}">
+                                                      {!act.Name}
+                                                  </a>
+                                              </div>
+                                              <div id="{!act.Id}" class="accordion-body collapse">
+                                                  <div class="accordion-inner">
+                                                      <div class="activityDescription">
+                                                          <ul><li>{!act.Description__c}</li></ul>
+                                                      </div>
+                                                      <div class="activityDate">
+                                                          <ul><li><apex:outputField value="{!act.Due_Date__c}"/></li></ul>
+                                                      </div>
+                                                  </div>
+                                              </div>
+                                              <!-- END ACCORDION -->
+                                          </div>
+                                        </apex:repeat>
+                                    </div>
                                 </div>
-                            </div>
-                        </apex:repeat>  <!-- Ends the repetition of the ITEMS -->
+                            </apex:repeat>
+                        </div>
                     </div>
                 </div> <!-- ENDS trashed secion -->
                 </apex:outputPanel>
                 
                 <!-- Begin Completed Goals Section (Not functional yet)-->
                 <hr/>
+                
                 <apex:outputPanel id="completedContent">
-                <div class="row">
-                    <div class="span10">
-                        <apex:repeat value="{!completedItems}" var="item" id="completedItemList">  <!-- Starts the repetition of the ITEMS -->
-                            <div class="navbar" style="margin-bottom:0px">
-                                <div class="navbar-inner">
-                                    <ul class="nav">
-                                        <li><a class="brand" href="/{!item.Id}" id="itemName" style="color:black">{!item.Name}</a></li>
-                                    </ul>
-                                    <ul class="nav pull-right">
-                                        <li>    
-                                            <apex:form > <!-- confirmation popup to unComplete and delete item -->
-                                                <apex:commandButton reRender="trashContent, pageContent" action="{!unCompleteItem}" value="Restore" id="uncomplete" onclick="if (!confirm('Are you sure you want to mark this as NOT completed?')) {return;};">                                                                                                                                          
-                                                    <apex:param name="ItemId" value="{!item.Id}"/>
-                                                </apex:commandButton>
-                                                <apex:commandButton reRender="trashContent" action="{!deleteItem}" value="Delete" id="delete" onclick="if (!confirm('Are you sure you want to delete this item forever?')) {return;};">                       
-                                                    <apex:param name="ItemId" value="{!item.Id}"/>
-                                                </apex:commandButton>
-                                            </apex:form>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </apex:repeat>  <!-- Ends the repetition of the ITEMS -->
-                    </div>
-                </div> <!-- ENDS Completed Goals section -->
+                	<div class="row">
+                    	<div class="span10">
+                        	<apex:repeat value="{!completedItems}" var="item" id="completedItemList">  <!-- Starts the repetition of the ITEMS -->
+                            	<div class="navbar" style="margin-bottom:0px">
+                                	<div class="navbar-inner">
+                                    	<ul class="nav">
+                                        	<li><a class="brand" href="/{!item.Id}" id="itemName" style="color:black">{!item.Name}</a></li>
+                                    	</ul>
+                                    	<ul class="nav pull-right">
+                                        	<li>    
+                                            	<apex:form > <!-- confirmation popup to unComplete and delete item -->
+                                                	<apex:commandButton reRender="wholePage" action="{!unCompleteItem}" value="Restore" id="uncomplete" onclick="if (!confirm('Are you sure you want to mark this as NOT completed?')) {return;};">                                                                                                                                          
+                                                    	<apex:param name="ItemId" value="{!item.Id}"/>
+                                                	</apex:commandButton>
+                                                	<apex:commandButton reRender="wholePage" action="{!deleteItem}" value="Delete" id="delete" onclick="if (!confirm('Are you sure you want to delete this item forever?')) {return;};">                       
+                                                    	<apex:param name="ItemId" value="{!item.Id}"/>
+                                                	</apex:commandButton>
+                                            	</apex:form>
+                                        	</li>
+                                    	</ul>
+                                	</div>
+                            	</div>
+                        	</apex:repeat>  <!-- Ends the repetition of the ITEMS -->
+                    	</div>
+                	</div> <!-- ENDS Completed Goals section -->
                 </apex:outputPanel>
                 
             </div> <!-- ENDS main page section -->
+            </apex:outputPanel>
         </div> <!-- ENDS row fluid -->
 
     </div> <!-- ENDS container-fluid -->
