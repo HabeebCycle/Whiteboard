@@ -287,6 +287,9 @@ public with sharing class WhiteboardController {
     // ************************ SAVING ITEMS AND ACTIVITIES ****************************************************************
     
     public PageReference save() {
+        if (Item.Name == '' || Item.Name == null) {
+        	return null;   
+        }
         try {
             insert Item;
             Item = new Whiteboard_Item__c();
@@ -301,7 +304,9 @@ public with sharing class WhiteboardController {
     public PageReference saveAct() {
         activity.Whiteboard_Item__c = WhiteboardId;
         show = 'Id: ' + activity.Whiteboard_Item__c + ', Name: ' + activity.Name + ', Description: ' + activity.Description__c;
-        
+        if (activity.Name == '' || activity.Name == null) {
+        	return null;   
+        }
         try {
             insert activity;
             activity = new Whiteboard_Item_Activity__c();

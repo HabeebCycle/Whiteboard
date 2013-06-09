@@ -59,6 +59,14 @@
         <label>Trashed</label>
         <type>Checkbox</type>
     </fields>
+    <fields>
+        <fullName>activities__c</fullName>
+        <externalId>false</externalId>
+        <label>Number of Activities</label>
+        <summaryForeignKey>Whiteboard_Item_Activity__c.Whiteboard_Item__c</summaryForeignKey>
+        <summaryOperation>count</summaryOperation>
+        <type>Summary</type>
+    </fields>
     <label>Whiteboard Item</label>
     <listViews>
         <fullName>All</fullName>

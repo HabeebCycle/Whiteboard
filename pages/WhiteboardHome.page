@@ -74,29 +74,65 @@
                                       		<a class="accordion-toggle itemTitle" data-toggle="collapse" data-parent="#accordion2" href="#{!item.Id}">{!item.Name}</a> 
                                     	</div>
                                     	<div id="{!item.Id}" class="accordion-body collapse">
-                                        	<apex:repeat value="{!item.Whiteboard_Item_Activities__r}" var="act" id="actList">
+                                        	<apex:repeat value="{!item.Whiteboard_Item_Activities__r}" var="act" id="actList" rendered="{!IF(item.Whiteboard_Item_Activities__r.size == 0, false, true)}">
                                           		<div class="accordion-inner activityRow">
+                                                    <div class="nav pull-right buttonLine">
+                                                        <apex:form >
+                                                            <apex:commandButton action="{!trashItem}" value="✖" id="delete" reRender="wholePage" styleClass="close">
+                                                                <apex:param name="ItemId" value="{!item.Id}"/>
+                                                            </apex:commandButton>
+                                                            <apex:commandButton action="{!completedItem}" value="✔" id="complete" reRender="wholePage" styleClass="close" >
+                                                                <apex:param name="ItemId" value="{!item.Id}"/>
+                                                            </apex:commandButton>
+                                                        </apex:form>
+                                                    </div>
                                               		<!-- ITEM INNER ACCORDION -->
                                                     <div class="accordion-heading" ondblclick="window.location='/{!act.Id}'">
       													<a class="accordion-toggle activityTitle" data-toggle="collapse" data-parent="#accordion3" href="#{!act.Id}">
                                                             {!act.Name}
                                                         </a>
                                                     </div>
+                                                    <apex:outputPanel rendered="{!IF(AND(act.Description__c == '', ISBLANK(act.Due_Date__c)), false, true)}">
                                                     <div id="{!act.Id}" class="accordion-body collapse">
                                                         <div class="accordion-inner">
                                                             <ul class="listWrapper">
-                                                                <div class="activityDescription">
-                                                                    <li>{!act.Description__c}</li>
-                                                                </div>
-                                                                <div class="activityDate">
-                                                                    <li><apex:outputField value="{!act.Due_Date__c}"/></li>
-                                                                </div>
+                                                                <apex:outputPanel rendered="{!IF(act.Description__c == '', false, true)}">
+                                                                    <div class="activityDescription">
+                                                                        <li>{!act.Description__c}</li>
+                                                                    </div>
+                                                                </apex:outputPanel>
+                                                                <apex:outputPanel rendered="{!IF(ISBLANK(act.Due_Date__c), false, true)}">
+                                                                    <div class="activityDate">
+                                                                        <li><apex:outputField value="{!act.Due_Date__c}"/></li>
+                                                                    </div>
+                                                                </apex:outputPanel>
                                                             </ul>
                                                         </div>
                                                     </div>
+                                                    </apex:outputPanel>
+                                                    <apex:outputPanel rendered="{!IF(AND(act.Description__c == '', ISBLANK(act.Due_Date__c)), true, false)}">
+                                                        <div id="{!act.Id}" class="accordion-body collapse">
+                                                            <div class="accordion-inner">
+                                                                <ul class="listWrapper">
+                                                                    <li>No description or due date specified</li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                    </apex:outputPanel>
                                               		<!-- END ACCORDION -->
                                           		</div>
                                         	</apex:repeat>
+                                            <apex:outputPanel rendered="{!IF(item.Whiteboard_Item_Activities__r.size == 0, true, false)}" >
+                                                <div class="accordion-inner activityRow">
+                                              		<!-- ITEM INNER ACCORDION -->
+                                                    <div class="accordion-heading">
+      													<a class="accordion-toggle activityTitle" data-toggle="collapse" data-parent="#accordion3">
+                                                            No Activities
+                                                        </a>
+                                                    </div>
+                                              		<!-- END ACCORDION -->
+                                          		</div>
+                                            </apex:outputPanel>
                                     	</div>
                                   	</div>
                                 </apex:repeat>
