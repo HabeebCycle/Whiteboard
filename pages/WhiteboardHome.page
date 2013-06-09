@@ -3,6 +3,15 @@
     <apex:stylesheet value="{!URLFOR($Resource.WBStyles, '/css/newStyle.css')}"/>
     <script src="{!URLFOR($Resource.jQueryLibrary)}"/>
     <script src="{!URLFOR($Resource.bootstrap, '/bootstrap/js/bootstrap.js')}"/>
+    
+    <script type="text/javascript">        
+        var itemId;
+        var j$ = jQuery.noConflict();
+        function setWhiteboardId()
+        {
+            document.getElementById('thePage:itemFormA:whiteboardId').value = itemId;
+        }
+    </script>
 
     <div class="container-fluid">
         <div class="row-fluid">
@@ -95,10 +104,11 @@
                         </div>
                     </div>
                 </apex:outputPanel> <!-- Ends the list of Items -->
-                
+    
                 <!-- NEW Activity MODAL -->
                 <div id="myModalAct" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
                     <apex:form id="itemFormA">
+                        <apex:inputHidden id="whiteboardId" value="{!whiteboardId}"/>
                         <div class="modal-header">
                             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
                             <h3 id="myModalLabel">New Activity</h3>
@@ -109,7 +119,7 @@
                             <span class="modalLabel">Due Date</span><apex:inputField label="Due Date" value="{!activity.Due_Date__c}" styleClass="modalActInput modalDate"/><br/>
                         </div>
                         <div class="modal-footer">
-                            <apex:commandButton styleClass="btn btn-primary" action="{!saveAct}" value="Save"/>
+                            <apex:commandButton styleClass="btn btn-primary" action="{!saveAct}" value="Save" onclick="setWhiteboardId();"/>
                             <apex:commandButton styleClass="btn" value="Cancel"/>
                         </div>
                     </apex:form>
@@ -171,7 +181,7 @@
                 
                 <!-- Begin Completed Goals Section (Not functional yet)-->
                 <hr/>
-                
+                {!show}
                 <apex:outputPanel id="completedContent">
                 	<div class="row">
                     	<div class="span10">

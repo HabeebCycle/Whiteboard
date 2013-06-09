@@ -3,8 +3,8 @@ public with sharing class WhiteboardController {
     public String WhiteboardId { get; set; }
     public String WhiteboardIdPersonal { get; set; }
     
-    public Whiteboard_Item_Activity__c activity {get; private set;}
-    public Whiteboard_Item__c Item {get; private set;}
+    public Whiteboard_Item_Activity__c activity { get; set; }
+    public Whiteboard_Item__c Item { get; set; }
     
     public List<Whiteboard_Item__c> currentItems { get; set;}
     public List<Whiteboard_Item__c> trashItems { get; set; }
@@ -13,6 +13,7 @@ public with sharing class WhiteboardController {
     public String currentWhiteboard { get; set; }
     public String currentWhiteboardTrash { get; set; }
     public Boolean indicator { get; set; }  // true if company, false if personal
+    public String show { get; set; }
 
     // ************************ SETTING UP CONTROLLER AND POPULATING LISTS ****************************************************************
 
@@ -299,9 +300,8 @@ public with sharing class WhiteboardController {
     
     public PageReference saveAct() {
         activity.Whiteboard_Item__c = WhiteboardId;
-        if (activity.Name == '' || activity.Name == null) {
-            return null;
-        }
+        show = 'Id: ' + activity.Whiteboard_Item__c + ', Name: ' + activity.Name + ', Description: ' + activity.Description__c;
+        
         try {
             insert activity;
             activity = new Whiteboard_Item_Activity__c();
