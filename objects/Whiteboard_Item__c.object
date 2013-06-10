@@ -45,6 +45,13 @@
         <type>Checkbox</type>
     </fields>
     <fields>
+        <fullName>High_Priority__c</fullName>
+        <defaultValue>false</defaultValue>
+        <externalId>false</externalId>
+        <label>High Priority</label>
+        <type>Checkbox</type>
+    </fields>
+    <fields>
         <fullName>PersonalItem__c</fullName>
         <defaultValue>false</defaultValue>
         <externalId>false</externalId>
