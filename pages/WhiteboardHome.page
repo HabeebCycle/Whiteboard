@@ -71,7 +71,11 @@
                                                     <apex:param name="ItemId" value="{!item.Id}"/>
                                                 </apex:commandButton>
                                                 <button href="#myModalAct" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="itemId='{!item.Id}'">✚</button>
-                                          	</apex:form>
+                                                <a href="#priority"><apex:image url="{!URLFOR($Resource.bootstrap, '/bootstrap/img/priority.png')}" width="27"/></a>
+                                            </apex:form>
+                                        </div>
+                                        <div class="nav pull-left buttonLine">
+                                            <i class="icon-check"></i>
                                         </div>
                                     	<div class="accordion-heading" ondblclick="window.location='/{!item.Id}'">
                                       		<a class="accordion-toggle itemTitle" data-toggle="collapse" data-parent="#accordion2" href="#{!item.Id}">{!item.Name}</a> 
