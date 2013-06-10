@@ -34,6 +34,7 @@
     </actionOverrides>
     <deploymentStatus>Deployed</deploymentStatus>
     <enableActivities>false</enableActivities>
+    <enableEnhancedLookup>false</enableEnhancedLookup>
     <enableFeeds>false</enableFeeds>
     <enableHistory>false</enableHistory>
     <enableReports>false</enableReports>
@@ -42,6 +43,13 @@
         <defaultValue>false</defaultValue>
         <externalId>false</externalId>
         <label>Completed</label>
+        <type>Checkbox</type>
+    </fields>
+    <fields>
+        <fullName>High_Priority__c</fullName>
+        <defaultValue>false</defaultValue>
+        <externalId>false</externalId>
+        <label>High Priority</label>
         <type>Checkbox</type>
     </fields>
     <fields>
