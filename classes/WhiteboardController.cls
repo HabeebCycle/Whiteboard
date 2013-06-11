@@ -14,6 +14,8 @@ public with sharing class WhiteboardController {
     public String currentWhiteboardTrash { get; set; }
     public Boolean indicator { get; set; }  // true if company, false if personal
     public String show { get; set; }
+    public String companyName { get; set; }
+    public String userName { get; set; }
 
     // ************************ SETTING UP CONTROLLER AND POPULATING LISTS ****************************************************************
 
@@ -21,12 +23,30 @@ public with sharing class WhiteboardController {
         currentItems = new List<Whiteboard_Item__c>();
         trashItems = new List<Whiteboard_Item__c>();
         completedItems = new List<Whiteboard_Item__c>();
-        
-        currentWhiteboard = 'Company Whiteboard';
+
         Item = new Whiteboard_Item__c();
         activity = new Whiteboard_Item_Activity__c();
         getCompanyItems();
         indicator = true; 
+        setBoardTitle(indicator);
+    }
+    
+    public void setBoardTitle(Boolean board) {
+        if (board) {     
+            companyName = [SELECT Name FROM Organization LIMIT 1].Name;
+            if (companyName == null || companyName == '') {
+                currentWhiteboard = 'Company Whiteboard';
+             } else {
+                currentWhiteboard = companyName + ' Whiteboard';    
+             }
+        } else {
+            userName = [SELECT Id, Name FROM User WHERE Id =: UserInfo.getUserId()].Name;
+            if (userName == null || userName == '') {
+                currentWhiteboard = 'Personal Whiteboard';
+            } else {
+                currentWhiteboard = userName + '\'s Whiteboard';
+            }
+        }
     }
     
     public void getCompanyItems() {
@@ -42,10 +62,8 @@ public with sharing class WhiteboardController {
                       ORDER BY High_Priority__c DESC, CreatedDate
                       LIMIT 100];
         indicator = true;
+        setBoardTitle(indicator);
         getCompanyCompleted();
-        
-        currentWhiteboard = 'Company Whiteboard';
-        currentWhiteboardTrash = 'Company Whiteboard Trash';
     }              
 
     public void getCompanyCompleted() {  
@@ -74,6 +92,7 @@ public with sharing class WhiteboardController {
                       ORDER BY High_Priority__c DESC, CreatedDate
                       LIMIT 100];
         indicator = false;
+        setBoardTitle(indicator);
         getPersonalCompleted();
     }
     
@@ -134,7 +153,7 @@ public with sharing class WhiteboardController {
             
             for (Whiteboard_Item_Activity__c act : item.Whiteboard_Item_Activities__r) {
                 if (act.Completed__c == false) {
-             		act.CompletedBy__c = userid;
+                    act.CompletedBy__c = userid;
                     update act;
                 }
             }
@@ -155,7 +174,7 @@ public with sharing class WhiteboardController {
         
         //Get the selected item
         List<Whiteboard_Item__c> itemsToUnComplete = [SELECT id, name, Completed__c, CompletedBy__c,
-                                                      	(SELECT Name, Id, Completedby__c, CompletedBy__r.Name, Completed__c
+                                                        (SELECT Name, Id, Completedby__c, CompletedBy__r.Name, Completed__c
                                                           FROM Whiteboard_Item_Activities__r
                                                           WHERE PersonalItem__c =: false 
                                                           LIMIT 30)
@@ -168,7 +187,7 @@ public with sharing class WhiteboardController {
             
             for (Whiteboard_Item_Activity__c act : item.Whiteboard_Item_Activities__r) {
                 if (act.Completed__c == false)
-             		act.CompletedBy__c = null;
+                    act.CompletedBy__c = null;
             }
             update item.Whiteboard_Item_Activities__r;
         }
