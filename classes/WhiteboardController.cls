@@ -3,6 +3,8 @@ public with sharing class WhiteboardController {
     public String WhiteboardId { get; set; }
     public String WhiteboardIdPersonal { get; set; }
     
+    public List<User> AllUsers { get; set;}
+    
     public Whiteboard_Item_Activity__c activity { get; set; }
     public Whiteboard_Item__c Item { get; set; }
     
@@ -29,6 +31,24 @@ public with sharing class WhiteboardController {
         getCompanyItems();
         indicator = true; 
         setBoardTitle(indicator);
+        
+        AllUsers = new List<User>();
+    }
+    
+    public List<SelectOption> UserList
+    {
+        get
+        {
+            AllUsers = [Select u.Name, u.LastName, u.Id, u.FirstName, u.Username, u.Email From User u];            
+            UserList = new List<SelectOption>();
+            
+            for(User temp : AllUsers)
+            {
+                UserList.add(new SelectOption(temp.Id, temp.Name));
+            }
+            return UserList;
+        }
+        set;
     }
     
     public void setBoardTitle(Boolean board) {
@@ -337,6 +357,11 @@ public with sharing class WhiteboardController {
             ApexPages.addMessages(ex);
         }
         return;
+    }
+    
+    
+    public void assignCompanyItem() {
+    
     }
     
     // ********************************************************************************************************************************

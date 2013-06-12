@@ -70,6 +70,11 @@
                             </div>
                             <div class="modal-body">
                                 <span class="modalLabel">Name</span><apex:inputField label="Name" value="{!Item.Name}" styleClass="modalInput modalActInput"/>
+                                <br></br>
+                                <span class="modalLabel">Assign To:</span>
+                            		<apex:selectList label="Assign" size="1" multiselect="false" styleClass="modalInput modalActInput">
+                                        <apex:selectOptions value="{!UserList}"></apex:selectOptions>
+                            		</apex:selectList>
                             </div>
                             <div class="modal-footer">
                                 <apex:commandButton styleClass="btn btn-primary" action="{!save}" value="Save"/>
