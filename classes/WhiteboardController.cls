@@ -371,7 +371,16 @@ public with sharing class WhiteboardController {
     
     // ************************ SAVING ITEMS AND ACTIVITIES ****************************************************************
     
-    public PageReference save() {
+    public void save() {
+        if(indicator)  {
+           saveCompany(); 
+        } else {
+            savePersonal();
+        }  
+    }
+    
+    
+    public PageReference saveCompany() {
         if (Item.Name == '' || Item.Name == null) {
             return null;   
         }
@@ -386,7 +395,15 @@ public with sharing class WhiteboardController {
         return null;
     }
     
-    public PageReference saveAct() {
+    public void saveAct() {
+        if(indicator)  {
+           saveActCompany(); 
+        } else {
+            saveActPersonal();
+        } 
+    }
+    
+    public PageReference saveActCompany() {
         activity.Whiteboard_Item__c = WhiteboardId;
         show = 'Id: ' + activity.Whiteboard_Item__c + ', Name: ' + activity.Name + ', Description: ' + activity.Description__c;
         if (activity.Name == '' || activity.Name == null) {
@@ -419,20 +436,25 @@ public with sharing class WhiteboardController {
         return;
     }
     
-    public void saveActPersonal() {
-        activity.Whiteboard_Item__c = WhiteboardIdPersonal;
-        try
-        {
+    public PageReference saveActPersonal() {
+        
+        activity.Whiteboard_Item__c = WhiteboardId;
+        show = 'Id: ' + activity.Whiteboard_Item__c + ', Name: ' + activity.Name + ', Description: ' + activity.Description__c;
+        if (activity.Name == '' || activity.Name == null) {
+            return null;   
+        }
+        try {
             activity.PersonalItem__c = true;
+        
             insert activity;
             activity = new Whiteboard_Item_Activity__c();
-            getPersonalItems();    
+            //getCompanyItems();
+            getPersonalItems();
         }                
-        catch(Exception ex)
-        {
+        catch(Exception ex) {
             ApexPages.addMessages(ex);
         }
-        return;
+        return null;
     }
     
     // ********************************************************************************************************************************
