@@ -41,7 +41,7 @@ public with sharing class WhiteboardController {
     
 
     
- ///////Side bar methods////////// 
+  ///////Side bar methods////////// 
      public PageReference searchItems(){//method for typing in search bar
     
         String search = '%' + searchValue + '%';
@@ -70,7 +70,7 @@ public with sharing class WhiteboardController {
                       ORDER BY Name
                       LIMIT 100];      
                                      
-        }else  if(selectListValue.equals('DATEDUE')){
+        }else  if(selectListValue.equals('DUEDATE')){
             currentItems = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
                          (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
                           FROM Whiteboard_Item_Activities__r
@@ -78,8 +78,8 @@ public with sharing class WhiteboardController {
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate
                           LIMIT 30)
                       FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Name LIKE :search
-                      ORDER BY Item_Due_Date__c DESC NULLS LAST 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Name LIKE :search AND Item_Due_Date__c >=: (date.today())
+                      ORDER BY Item_Due_Date__c ASC NULLS LAST 
                       LIMIT 100];     
                       
         }else{
@@ -150,8 +150,8 @@ public with sharing class WhiteboardController {
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
                           LIMIT 30)
                       FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c =: false AND Completed__c =: false
-                      ORDER BY Item_Due_Date__c DESC NULLS LAST
+                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c >=: (date.today())
+                      ORDER BY Item_Due_Date__c ASC NULLS LAST
                       LIMIT 100];       
        }
     return null;
@@ -159,14 +159,31 @@ public with sharing class WhiteboardController {
     
     public List<SelectOption> getItemsTwo() { //creates selection options for second selectList
             List<SelectOption> options = new List<SelectOption>();
-            options.add(new SelectOption('DAY', '1 Day'));
-            options.add(new SelectOption('WEEK','1 Week'));
-            options.add(new SelectOption('MONTH','1 Month'));
-            options.add(new SelectOption('YEAR','1 Year'));
+            options.add(new SelectOption('TODAY', 'Today'));
+            options.add(new SelectOption('DAY', 'Tomorrow'));
+            options.add(new SelectOption('WEEK','In Next Week'));
+            options.add(new SelectOption('MONTH','In Next Month'));
+            options.add(new SelectOption('YEAR','In Next Year'));
+            options.add(new SelectOption('PAST', 'Past Due'));
             return options;
     }
    
    public PageReference changeOrderByTwo(){ //method called when a filter is selected from the second selectList
+   
+   
+        if(selectListValueTwo.equals('TODAY')){
+       
+            currentItems = [SELECT Name, Id, Trashed__c, Completed__c, Item_Due_Date__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c =: (date.today())
+                      ORDER BY Item_Due_Date__c ASC NULLS LAST
+                      LIMIT 100];
+           }
    
        if(selectListValueTwo.equals('DAY')){
        
@@ -177,8 +194,8 @@ public with sharing class WhiteboardController {
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
                           LIMIT 30)
                       FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c >=: (date.today() - 1)
-                      ORDER BY Item_Due_Date__c DESC NULLS LAST
+                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c =: (date.today().addDays(1))
+                      ORDER BY Item_Due_Date__c ASC NULLS LAST
                       LIMIT 100];
            }
            
@@ -191,8 +208,8 @@ public with sharing class WhiteboardController {
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
                           LIMIT 30)
                       FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c >=: (date.today() - 7)
-                      ORDER BY Item_Due_Date__c DESC NULLS LAST
+                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c <=: (date.today().addDays(7)) AND Item_Due_Date__c >=: (date.today())
+                      ORDER BY Item_Due_Date__c ASC NULLS LAST
                       LIMIT 100];
            }
           if(selectListValueTwo.equals('MONTH')){
@@ -204,8 +221,8 @@ public with sharing class WhiteboardController {
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
                           LIMIT 30)
                       FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c >=: (date.today().addMonths(-1))
-                      ORDER BY Item_Due_Date__c DESC NULLS LAST
+                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c <=: (date.today().addMonths(1)) AND Item_Due_Date__c >=: (date.today())
+                      ORDER BY Item_Due_Date__c ASC NULLS LAST
                       LIMIT 100];
            } 
          if(selectListValueTwo.equals('YEAR')){
@@ -217,10 +234,23 @@ public with sharing class WhiteboardController {
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
                           LIMIT 30)
                       FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c >=: (date.today().addYears(-1))
-                      ORDER BY Item_Due_Date__c DESC NULLS LAST
+                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c <=: (date.today().addYears(1)) AND Item_Due_Date__c >=: (date.today())
+                      ORDER BY Item_Due_Date__c ASC NULLS LAST
                       LIMIT 100];
            } 
+          if(selectListValueTwo.equals('PAST')){
+       
+            currentItems = [SELECT Name, Id, Trashed__c, Completed__c, Item_Due_Date__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c <: (date.today())
+                      ORDER BY Item_Due_Date__c ASC NULLS LAST
+                      LIMIT 100];
+           }
        
    
    
