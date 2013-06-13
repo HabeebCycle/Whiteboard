@@ -1,27 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
-        <members>*</members>
+        <members>WhiteboardController</members>
         <name>ApexClass</name>
     </types>
     <types>
-        <members>*</members>
-        <name>ApexComponent</name>
-    </types>
-    <types>
-        <members>*</members>
+        <members>WhiteboardHome</members>
         <name>ApexPage</name>
     </types>
     <types>
-        <members>*</members>
-        <name>ApexTrigger</name>
-    </types>
-    <types>
-        <members>*</members>
+        <members>Whiteboard_Item_Activity__c</members>
+        <members>Whiteboard_Item__c</members>
         <name>CustomObject</name>
     </types>
     <types>
-        <members>*</members>
+        <members>Modernizr</members>
+        <members>WBStyles</members>
+        <members>bootstrap</members>
+        <members>bootstrap_modal</members>
+        <members>jQueryLibrary</members>
         <name>StaticResource</name>
     </types>
     <version>27.0</version>

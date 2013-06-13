@@ -18,6 +18,10 @@ public with sharing class WhiteboardController {
     public String show { get; set; }
     public String companyName { get; set; }
     public String userName { get; set; }
+    
+    public String searchValue { get; set; }
+    public String selectListValue { get; set; }
+    public String selectListValueTwo { get; set; }    
 
     // ************************ SETTING UP CONTROLLER AND POPULATING LISTS ****************************************************************
 
@@ -34,6 +38,195 @@ public with sharing class WhiteboardController {
         
         AllUsers = new List<User>();
     }
+    
+
+    
+ ///////Side bar methods////////// 
+     public PageReference searchItems(){//method for typing in search bar
+    
+        String search = '%' + searchValue + '%';
+     
+        if(selectListValue.equals('PRIORITY')){
+            currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false AND High_Priority__c =:true AND Name LIKE :search
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+                      
+        }else if(selectListValue.equals('ALPHA')){
+            currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Name LIKE :search
+                      ORDER BY Name
+                      LIMIT 100];      
+                                     
+        }else  if(selectListValue.equals('DATEDUE')){
+            currentItems = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Name LIKE :search
+                      ORDER BY Item_Due_Date__c DESC NULLS LAST 
+                      LIMIT 100];     
+                      
+        }else{
+            currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Name LIKE :search
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];                 
+        }
+        return null;
+    }
+    
+   
+    public List<SelectOption> getItems() { //creates selection options for first selectList
+            List<SelectOption> options = new List<SelectOption>();
+            options.add(new SelectOption('CREATED', 'Date Created'));
+            options.add(new SelectOption('PRIORITY','Priority'));
+            options.add(new SelectOption('DUEDATE','Date Due'));
+            options.add(new SelectOption('ALPHA','Alphabetical'));
+            return options;
+    }
+          
+    public PageReference changeOrderBy(){ //method called when a filter is selected from the first selectList
+    
+        String value = selectListValue;
+
+        if(value.equals('CREATED')){
+        
+            getCompanyItems();
+        
+        }if(value.equals('ALPHA')){
+
+             currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false
+                      ORDER BY Name
+                      LIMIT 100];
+                      
+       }if(value.equals('PRIORITY')){
+       
+              currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false and High_Priority__c =:true
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+       }if(value.equals('DUEDATE')){
+       
+               currentItems = [SELECT Name, Id, Trashed__c, Completed__c, Item_Due_Date__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false
+                      ORDER BY Item_Due_Date__c DESC NULLS LAST
+                      LIMIT 100];       
+       }
+    return null;
+   }
+    
+    public List<SelectOption> getItemsTwo() { //creates selection options for second selectList
+            List<SelectOption> options = new List<SelectOption>();
+            options.add(new SelectOption('DAY', '1 Day'));
+            options.add(new SelectOption('WEEK','1 Week'));
+            options.add(new SelectOption('MONTH','1 Month'));
+            options.add(new SelectOption('YEAR','1 Year'));
+            return options;
+    }
+   
+   public PageReference changeOrderByTwo(){ //method called when a filter is selected from the second selectList
+   
+       if(selectListValueTwo.equals('DAY')){
+       
+            currentItems = [SELECT Name, Id, Trashed__c, Completed__c, Item_Due_Date__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c >=: (date.today() - 1)
+                      ORDER BY Item_Due_Date__c DESC NULLS LAST
+                      LIMIT 100];
+           }
+           
+         if(selectListValueTwo.equals('WEEK')){
+       
+            currentItems = [SELECT Name, Id, Trashed__c, Completed__c, Item_Due_Date__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c >=: (date.today() - 7)
+                      ORDER BY Item_Due_Date__c DESC NULLS LAST
+                      LIMIT 100];
+           }
+          if(selectListValueTwo.equals('MONTH')){
+       
+            currentItems = [SELECT Name, Id, Trashed__c, Completed__c, Item_Due_Date__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c >=: (date.today().addMonths(-1))
+                      ORDER BY Item_Due_Date__c DESC NULLS LAST
+                      LIMIT 100];
+           } 
+         if(selectListValueTwo.equals('YEAR')){
+       
+            currentItems = [SELECT Name, Id, Trashed__c, Completed__c, Item_Due_Date__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c >=: (date.today().addYears(-1))
+                      ORDER BY Item_Due_Date__c DESC NULLS LAST
+                      LIMIT 100];
+           } 
+       
+   
+   
+   return null;
+   }
+   //////end of sidebar methods
     
     public List<SelectOption> UserList
     {
