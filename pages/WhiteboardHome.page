@@ -45,8 +45,9 @@
                                 <span class="modalLabel">Name</span><apex:inputField label="Name" value="{!Item.Name}" styleClass="modalInput modalActInput"/>
                                 <br></br>
                                 <span class="modalLabel">Assign To:</span>                                   
-                                      <apex:selectList id="aUser" size="1" multiselect="false" onselect="{!assignedUser}"> 
-                                          <apex:selectOptions value="{!UserList}" ></apex:selectOptions>
+                                      <!-- <apex:selectList id="aUser" onselect="{!assignedUser}" size="1" multiselect="false" > -->
+                                      <apex:selectList id="aUser" onselect="{!Item.assignedTo__r}" size="1" multiselect="false" >
+                                          <apex:selectOptions value="{!UserList}" ></apex:selectOptions>                                          
                                       </apex:selectList>
                             </div>
                             <div class="modal-footer">
@@ -94,10 +95,11 @@
                                             <a class="accordion-toggle itemTitle" data-toggle="collapse" data-parent="#accordion2" href="#{!item.Id}">{!item.Name}</a> 
                                         </div>
                                         <div id="{!item.Id}" class="accordion-body collapse">
-                                                         <div id="assignedUser">Assigned To: 
-                                                                <!-- <apex:outputText value = "{!Item.OwnerId}" />  <!-- value="{!findOwner()}" /> -->
-                                                                <apex:outputText value="{!itemOwner}" />
-                                                         </div>  
+                                            <apex:form >
+                                            	<div id="assignedUser">Assigned To: 
+                                                    <apex:outputText value="{!item.assignedTo__r.Name}"/>                                                
+                                             	</div>
+                                              </apex:form>
                                             <apex:repeat value="{!item.Whiteboard_Item_Activities__r}" var="act" id="actList" rendered="{!IF(item.Whiteboard_Item_Activities__r.size == 0, false, true)}">
                                                 <div class="accordion-inner activityRow" style="{!IF(act.Completed__c == true, 'text-decoration: line-through; opacity: .6;', '')}">
                                                     <div class="nav pull-right buttonLine">

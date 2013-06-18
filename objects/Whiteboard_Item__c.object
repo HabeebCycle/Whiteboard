@@ -92,6 +92,16 @@
         <summaryOperation>count</summaryOperation>
         <type>Summary</type>
     </fields>
+    <fields>
+        <fullName>assignedTo__c</fullName>
+        <deleteConstraint>SetNull</deleteConstraint>
+        <externalId>false</externalId>
+        <label>assignedTo</label>
+        <referenceTo>User</referenceTo>
+        <relationshipName>Whiteboard_Items1</relationshipName>
+        <required>false</required>
+        <type>Lookup</type>
+    </fields>
     <label>Whiteboard Item</label>
     <listViews>
         <fullName>All</fullName>
