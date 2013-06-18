@@ -4,6 +4,8 @@ public with sharing class WhiteboardController {
     public String WhiteboardIdPersonal { get; set; }
     
     public List<User> AllUsers { get; set;}
+    public User assignedUser { get; set;}
+    public String assignedUserId { get; set;}
     
     public Whiteboard_Item_Activity__c activity { get; set; }
     public Whiteboard_Item__c Item { get; set; }
@@ -37,6 +39,7 @@ public with sharing class WhiteboardController {
         setBoardTitle(indicator);
         
         AllUsers = new List<User>();
+        assignedUser = new User();
     }
     
 
@@ -294,7 +297,7 @@ public with sharing class WhiteboardController {
     
     public void getCompanyItems() {
         //currentWhiteboard = 'Company Whiteboard';
-        currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
+        currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId,
                          (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE PersonalItem__c =: false 
@@ -310,7 +313,7 @@ public with sharing class WhiteboardController {
     }              
 
     public void getCompanyCompleted() {  
-        completedItems = [SELECT Name, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c, 
+        completedItems = [SELECT Name, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c, OwnerId,
                          (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE PersonalItem__c =: false 
@@ -324,7 +327,7 @@ public with sharing class WhiteboardController {
     
     public void getPersonalItems() {
         currentWhiteboard = 'Personal Whiteboard';
-        currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
+        currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId,
                          (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
@@ -341,7 +344,7 @@ public with sharing class WhiteboardController {
     
     public void getPersonalCompleted() {  
                       
-        completedItems = [SELECT Name, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c, 
+        completedItems = [SELECT Name, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c, OwnerId,
                          (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
@@ -381,7 +384,7 @@ public with sharing class WhiteboardController {
     public void completeItem() {
         
         //Get the selected item
-        List<Whiteboard_Item__c> itemsToComplete = [SELECT id, name, Completed__c, Completedby__c,
+        List<Whiteboard_Item__c> itemsToComplete = [SELECT id, name, Completed__c, Completedby__c, OwnerId,
                                                      (SELECT Name, Id, Completedby__c, CompletedBy__r.Name, Completed__c
                                                       FROM Whiteboard_Item_Activities__r
                                                       WHERE PersonalItem__c =: false 
@@ -416,7 +419,7 @@ public with sharing class WhiteboardController {
     public void unCompleteItem() {
         
         //Get the selected item
-        List<Whiteboard_Item__c> itemsToUnComplete = [SELECT id, name, Completed__c, CompletedBy__c,
+        List<Whiteboard_Item__c> itemsToUnComplete = [SELECT id, name, Completed__c, CompletedBy__c, OwnerId,
                                                         (SELECT Name, Id, Completedby__c, CompletedBy__r.Name, Completed__c
                                                           FROM Whiteboard_Item_Activities__r
                                                           WHERE PersonalItem__c =: false 
@@ -583,9 +586,18 @@ public with sharing class WhiteboardController {
     }
     
     
-    public void assignCompanyItem() {
-    
+    public void getassignedUser() {
+         assignedUser =  [Select u.Name, u.LastName, u.Id, u.FirstName, u.Username, u.Email From User u WHERE u.Id = :ApexPages.currentpage().getparameters().get('aUser')];   
     }
+
+   public String getItemOwner() {
+        //Query all users for the one with theId
+       List<User> theOwnerList = new List<User>();
+       theOwnerList = [Select u.Name, u.LastName, u.Id, u.FirstName, u.Username, u.Email From User u WHERE u.Id = :ApexPages.currentpage().getparameters().get('Item.Id') LIMIT 1];
+
+       String testing = 'Matt Test';
+       return testing;
+   }
     
     // ********************************************************************************************************************************
     
@@ -635,6 +647,8 @@ public with sharing class WhiteboardController {
         try {
             insert Item;
             Item = new Whiteboard_Item__c();
+            Item.OwnerId = assignedUser.Id;
+
             getCompanyItems();         
         }
         catch(Exception ex) {
@@ -675,6 +689,7 @@ public with sharing class WhiteboardController {
             Item.PersonalItem__c = true;
             insert Item;
             Item = new Whiteboard_Item__c();
+          
             getPersonalItems();         
         }
         catch(Exception ex)
