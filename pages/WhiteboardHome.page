@@ -95,7 +95,7 @@
                                         </div>
                                         <div id="{!item.Id}" class="accordion-body collapse">
                                             <apex:form >
-                                            	<div id="assignedUser">Assigned To: 
+                                            	<div class="assignedUser">Assigned To: 
                                                     <apex:outputText value="{!item.assignedTo__r.Name}"/>                                                
                                              	</div>
                                               </apex:form>
@@ -147,6 +147,11 @@
                                                             {!act.Name}
                                                         </a>
                                                     </div>
+                                                    <apex:form >
+                                                        <div class="actAssignedUser">Assigned To: 
+                                                            <apex:outputText value="{!act.actAssignedTo__r.Name}"/>                                                
+                                                        </div>
+                                                    </apex:form>
                                                     <apex:outputPanel rendered="{!IF(AND(act.Description__c == '', ISBLANK(act.Due_Date__c)), false, true)}">
                                                     <div id="{!act.Id}" class="accordion-body collapse">
                                                         <div class="accordion-inner">
@@ -164,7 +169,7 @@
                                                             </ul>
                                                         </div>
                                                     </div>
-                                                    </apex:outputPanel>
+                                                    </apex:outputPanel>                                                    
                                                     <apex:outputPanel rendered="{!IF(AND(act.Description__c == '', ISBLANK(act.Due_Date__c)), true, false)}">
                                                         <div id="{!act.Id}" class="accordion-body collapse">
                                                             <div class="accordion-inner">
@@ -208,6 +213,10 @@
                             <span class="modalLabel">Name</span><apex:inputField label="Name" value="{!activity.Name}" styleClass="modalActInput modalName"/><br/>
                             <span class="modalLabel">Description</span><apex:inputField label="Description" value="{!activity.Description__c}" styleClass="modalActInput modalDescription"/><br/>
                             <span class="modalLabel">Due Date</span><apex:inputField label="Due Date" value="{!activity.Due_Date__c}" styleClass="modalActInput modalDate"/><br/>
+                            <span class="modalLabel">Assign To:</span>                                                                         
+                            <apex:selectList id="actUser" value="{!activity.actAssignedTo__c}" size="1" multiselect="false" >
+                                <apex:selectOptions value="{!UserList}" ></apex:selectOptions> 
+                            </apex:selectList>
                         </div>
                         <div class="modal-footer">
                             <apex:commandButton styleClass="btn btn-primary" action="{!saveAct}" value="Save" onclick="setWhiteboardId();"/>

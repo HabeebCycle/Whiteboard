@@ -297,7 +297,7 @@ public with sharing class WhiteboardController {
     public void getCompanyItems() {
         //currentWhiteboard = 'Company Whiteboard';
         currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
                           FROM Whiteboard_Item_Activities__r
                           WHERE PersonalItem__c =: false 
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
@@ -314,7 +314,7 @@ public with sharing class WhiteboardController {
 
     public void getCompanyCompleted() {  
         completedItems = [SELECT Name, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c, OwnerId,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name
                           FROM Whiteboard_Item_Activities__r
                           WHERE PersonalItem__c =: false 
                           ORDER BY CreatedDate 
@@ -328,7 +328,7 @@ public with sharing class WhiteboardController {
     public void getPersonalItems() {
         currentWhiteboard = 'Personal Whiteboard';
         currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name
                           FROM Whiteboard_Item_Activities__r
                           WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
@@ -345,7 +345,7 @@ public with sharing class WhiteboardController {
     public void getPersonalCompleted() {  
                       
         completedItems = [SELECT Name, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c, OwnerId,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name
                           FROM Whiteboard_Item_Activities__r
                           WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
                           ORDER BY CreatedDate 

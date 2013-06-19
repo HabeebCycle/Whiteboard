@@ -104,6 +104,16 @@
         <type>MasterDetail</type>
         <writeRequiresMasterRead>false</writeRequiresMasterRead>
     </fields>
+    <fields>
+        <fullName>actAssignedTo__c</fullName>
+        <deleteConstraint>SetNull</deleteConstraint>
+        <externalId>false</externalId>
+        <label>actAssignedTo</label>
+        <referenceTo>User</referenceTo>
+        <relationshipName>Whiteboard_Item_Activities1</relationshipName>
+        <required>false</required>
+        <type>Lookup</type>
+    </fields>
     <label>Whiteboard Item Activity</label>
     <listViews>
         <fullName>All</fullName>
