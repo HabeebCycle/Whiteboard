@@ -313,7 +313,7 @@ public with sharing class WhiteboardController {
     }              
 
     public void getCompanyCompleted() {  
-        completedItems = [SELECT Name, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c, OwnerId,
+        completedItems = [SELECT Name, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c, OwnerId, assignedTo__c, assignedTo__r.Name,
                          (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name
                           FROM Whiteboard_Item_Activities__r
                           WHERE PersonalItem__c =: false 
@@ -344,7 +344,7 @@ public with sharing class WhiteboardController {
     
     public void getPersonalCompleted() {  
                       
-        completedItems = [SELECT Name, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c, OwnerId,
+        completedItems = [SELECT Name, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c, OwnerId, assignedTo__c, assignedTo__r.Name,
                          (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name
                           FROM Whiteboard_Item_Activities__r
                           WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true

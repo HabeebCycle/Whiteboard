@@ -95,12 +95,12 @@
                                         </div>
                                         <div id="{!item.Id}" class="accordion-body collapse">
                                             <apex:form >
-                                            	<div class="assignedUser">Assigned To: 
-                                                    <apex:outputText value="{!item.assignedTo__r.Name}"/>                                                
+                                            	<div class="assignedUser" style="margin-left:41px; padding-bottom:4px; font-size:10pt">Assigned To: 
+                                                    <apex:outputText value=" {!item.assignedTo__r.Name}"/>                                                
                                              	</div>
                                               </apex:form>
                                             <apex:repeat value="{!item.Whiteboard_Item_Activities__r}" var="act" id="actList" rendered="{!IF(item.Whiteboard_Item_Activities__r.size == 0, false, true)}">
-                                                <div class="accordion-inner activityRow" style="{!IF(act.Completed__c == true, 'text-decoration: line-through; opacity: .6;', '')}">
+                                                <div class="accordion-inner activityRow" style="margin-left: 33px; {!IF(act.Completed__c == true, 'text-decoration: line-through; opacity: .6;', '')}">
                                                     <div class="nav pull-right buttonLine">
                                                         <apex:form >
                                                             <apex:commandButton action="{!deleteAct}" value="✖" id="delete" reRender="wholePage" styleClass="{!IF(act.Completed__c == true, 'btn close restoreButton trashButton', 'close')}" onclick="if (!confirm('Are you sure you want to delete this activity forever?')) {return;};">
@@ -148,8 +148,8 @@
                                                         </a>
                                                     </div>
                                                     <apex:form >
-                                                        <div class="actAssignedUser">Assigned To: 
-                                                            <apex:outputText value="{!act.actAssignedTo__r.Name}"/>                                                
+                                                        <div class="actAssignedUser" style="margin-left: 41px; padding-bottom:4px; font-size:10pt">Assigned To: 
+                                                            <apex:outputText value=" {!act.actAssignedTo__r.Name}"/>                                                
                                                         </div>
                                                     </apex:form>
                                                     <apex:outputPanel rendered="{!IF(AND(act.Description__c == '', ISBLANK(act.Due_Date__c)), false, true)}">
@@ -265,8 +265,13 @@
                                         </a> 
                                     </div>
                                     <div id="{!item.Id}" class="accordion-body collapse">
+                                        <apex:form >
+                                            <div class="assignedUser" style="margin-left:41px; padding-bottom:4px; font-size:10pt">Assigned To: 
+                                                <apex:outputText value=" {!item.assignedTo__r.Name}"/>                                                
+                                            </div>
+                                        </apex:form>
                                             <apex:repeat value="{!item.Whiteboard_Item_Activities__r}" var="act" id="actList" rendered="{!IF(item.Whiteboard_Item_Activities__r.size == 0, false, true)}">
-                                                <div class="accordion-inner activityRow">
+                                                <div class="accordion-inner activityRow" style="margin-left:27px">
                                                     <div class="nav pull-right buttonLine">
                                                         <apex:form >
                                                             <div Class="prioritydone" style="{!IF(act.High_Priority__c == true, true, 'display:none')}">
@@ -288,6 +293,11 @@
                                                             {!act.Name}
                                                         </a>
                                                     </div>
+                                                    <apex:form >
+                                                        <div class="actAssignedUser" style="margin-left: 41px; padding-bottom:4px; font-size:10pt">Assigned To: 
+                                                            <apex:outputText value=" {!act.actAssignedTo__r.Name}"/>                                                
+                                                        </div>
+                                                    </apex:form>
                                                     <apex:outputPanel rendered="{!IF(AND(act.Description__c == '', ISBLANK(act.Due_Date__c)), false, true)}">
                                                     <div id="{!act.Id}" class="accordion-body collapse">
                                                         <div class="accordion-inner">
