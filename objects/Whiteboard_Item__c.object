@@ -34,7 +34,6 @@
     </actionOverrides>
     <deploymentStatus>Deployed</deploymentStatus>
     <enableActivities>false</enableActivities>
-    <enableEnhancedLookup>false</enableEnhancedLookup>
     <enableFeeds>false</enableFeeds>
     <enableHistory>false</enableHistory>
     <enableReports>false</enableReports>
@@ -96,7 +95,7 @@
         <fullName>assignedTo__c</fullName>
         <deleteConstraint>SetNull</deleteConstraint>
         <externalId>false</externalId>
-        <label>assignedTo</label>
+        <label>Assigned To</label>
         <referenceTo>User</referenceTo>
         <relationshipName>Whiteboard_Items1</relationshipName>
         <required>false</required>

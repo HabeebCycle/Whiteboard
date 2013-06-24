@@ -266,6 +266,7 @@ public with sharing class WhiteboardController {
         {
             AllUsers = [Select u.Name, u.LastName, u.Id, u.FirstName, u.Username, u.Email From User u];            
             UserList = new List<SelectOption>();
+            UserList.add(new SelectOption('None', 'None'));
             
             for(User temp : AllUsers)
             {
@@ -620,6 +621,7 @@ public with sharing class WhiteboardController {
     // ************************ SAVING ITEMS AND ACTIVITIES ****************************************************************
     
     public void save() {
+        System.debug('Entered global save');
         if(indicator)  {
            saveCompany(); 
         } else {
@@ -629,10 +631,15 @@ public with sharing class WhiteboardController {
     
     
     public PageReference saveCompany() {
+        System.debug('Entered save block');
         if (Item.Name == '' || Item.Name == null) {
             return null;   
         }
         try {
+            System.debug(Item);
+            if (Item.assignedTo__c == 'None') {
+             	Item.assignedTo__c = null;   
+            }
             insert Item;
             Item = new Whiteboard_Item__c();
             

@@ -12,6 +12,71 @@
             document.getElementById('thePage:itemFormA:whiteboardId').value = itemId;
         }
     </script>
+    
+    <script type="text/javascript">
+    	var prev;
+    	var cur;
+    
+        function toggleicons(id) {
+            cur = id;
+            var down = "icondown";
+            var up = "iconup";
+            down += id;
+            up += id;
+            if (document.getElementById(down).style.display == 'none') {
+                document.getElementById(down).style.display = '';
+                document.getElementById(up).style.display = 'none';
+            } else {
+                document.getElementById(down).style.display = 'none';
+                document.getElementById(up).style.display = '';
+            }
+            
+            if (prev != cur && prev != null) {
+                var down = "icondown";
+                var up = "iconup";
+                down += prev;
+                up += prev;
+                
+                document.getElementById(down).style.display = '';
+                document.getElementById(up).style.display = 'none';
+            }
+            
+            prev = id;
+        }
+    </script>
+    
+        <script type="text/javascript">
+    	var actprev;
+    	var actcur;
+    
+        function toggleacticons(id) {
+            actcur = id;
+            var down = "icondown";
+            var up = "iconup";
+            down += id;
+            up += id;
+            if (document.getElementById(down).style.display == 'none') {
+                document.getElementById(down).style.display = '';
+                document.getElementById(up).style.display = 'none';
+            } else {
+                document.getElementById(down).style.display = 'none';
+                document.getElementById(up).style.display = '';
+            }
+
+        }
+    </script>
+    
+    <apex:outputPanel id="jquery">
+        <script type="text/javascript">
+            var j$ = jQuery.noConflict();
+            jQuery(function () {
+                j$("[rel='tooltip']").tooltip();
+            });
+            jQuery(function () {
+                j$("[alt='tooltip']").tooltip();
+            });
+        </script>
+    </apex:outputPanel>
 
     <div class="container-fluid">
         <div class="row-fluid">
@@ -43,7 +108,7 @@
                             </div>
                             <div class="modal-body">
                                 <span class="modalLabel">Name</span><apex:inputField label="Name" value="{!Item.Name}" styleClass="modalInput modalActInput"/>
-                                <br></br>
+                                <br/>
                                 <span class="modalLabel">Assign To:</span>                                                                         
                                       <apex:selectList id="aUser" value="{!Item.assignedTo__c}" size="1" multiselect="false" >
                                           <apex:selectOptions value="{!UserList}" ></apex:selectOptions> 
@@ -69,15 +134,15 @@
                                     <div class="accordion-group itemBar">
                                         <div class="nav pull-right buttonLine">
                                             <apex:form >
-                                                <apex:commandButton action="{!deleteItem}" value="✖" id="delete" reRender="wholePage" styleClass="close" onclick="if (!confirm('Are you sure you want to delete this item forever?')) {return;};">
+                                                <apex:commandButton alt="tooltip" title="Click to delete" action="{!deleteItem}" value="✖" id="delete" reRender="wholePage" styleClass="close" onclick="if (!confirm('Are you sure you want to delete this item forever?')) {return;};">
                                                     <apex:param name="ItemId" value="{!item.Id}"/>
                                                 </apex:commandButton>
-                                                <button href="#myModalAct" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="itemId='{!item.Id}'">✚</button>
-                                                <apex:commandLink styleClass="priority" rendered="{!IF(item.High_Priority__c == true, true, false)}"  action="{!unsetPriority}" rerender="wholePage">
+                                                <button href="#myModalAct" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="itemId='{!item.Id}'" rel="tooltip" data-placement="top" title="Click to add an Activity">✚</button>
+                                                <apex:commandLink rel="tooltip" title="Click to toggle priority" styleClass="priority" rendered="{!IF(item.High_Priority__c == true, true, false)}"  action="{!unsetPriority}" rerender="wholePage">
                                                     <apex:image url="{!URLFOR($Resource.bootstrap, '/bootstrap/img/priority.png')}" width="25"/>
                                                     <apex:param name="ItemId" value="{!item.Id}"/>
                                                 </apex:commandLink>
-                                                <apex:commandLink styleClass="priority" rendered="{!IF(item.High_Priority__c == true, false, true)}" action="{!setPriority}" rerender="wholePage">
+                                                <apex:commandLink rel="tooltip" title="Click to toggle priority" styleClass="priority" rendered="{!IF(item.High_Priority__c == true, false, true)}" action="{!setPriority}" rerender="wholePage">
                                                     <apex:image url="{!URLFOR($Resource.bootstrap, '/bootstrap/img/nopriority.png')}" width="25"/>
                                                     <apex:param name="ItemId" value="{!item.Id}"/>
                                                 </apex:commandLink>
@@ -85,16 +150,25 @@
                                         </div>
                                         <div class="nav pull-left buttonLine">
                                             <apex:form >
-                                                <apex:commandLink styleClass="completedbox" action="{!completeItem}" rerender="wholePage">
-                                                    <apex:param name="ItemId" value="{!item.Id}"/>                                                              
-                                                </apex:commandLink>
+                                                <div rel="tooltip" href="#" data-toggle="tooltip" data-placement="left" title="Click to mark complete">
+                                                    <apex:commandLink styleClass="completedbox" action="{!completeItem}" rerender="wholePage">
+                                                        <apex:param name="ItemId" value="{!item.Id}"/>
+                                                    </apex:commandLink>
+                                                </div>
                                             </apex:form>
                                         </div>
                                         <div class="accordion-heading" ondblclick="window.location='/{!item.Id}'">
-                                            <a class="accordion-toggle itemTitle" data-toggle="collapse" data-parent="#accordion2" href="#{!item.Id}">{!item.Name}</a> 
+                                            <a class="accordion-toggle itemTitle" data-toggle="collapse" data-parent="#accordion2" href="#{!item.Id}" onclick="toggleicons('{!item.Id}')">{!item.Name} 
+                                                <apex:outputPanel rendered="{!IF(item.Whiteboard_Item_Activities__r.size == 0, false, true)}">
+                                                    <i id="icondown{!item.Id}" class="icon-chevron-down downicon" style="display: ;"></i>
+                                                </apex:outputPanel>
+                                                <apex:outputPanel >
+                                                    <i id="iconup{!item.Id}" class="icon-chevron-up downicon" style="display: none;"></i>
+                                                </apex:outputPanel>
+                                            </a>
                                         </div>
                                         <div id="{!item.Id}" class="accordion-body collapse">
-                                            <apex:form >
+                                            <apex:form rendered="{!IF(item.assignedTo__r.Name != '', true, false)}">
                                             	<div class="assignedUser" style="margin-left:41px; padding-bottom:4px; font-size:10pt">Assigned To: 
                                                     <apex:outputText value=" {!item.assignedTo__r.Name}"/>                                                
                                              	</div>
@@ -143,11 +217,17 @@
                                                     </div>
                                                     <!-- ITEM INNER ACCORDION -->
                                                     <div class="accordion-heading" ondblclick="window.location='/{!act.Id}'">
-                                                        <a class="accordion-toggle activityTitle" data-toggle="collapse" data-parent="#accordion3" href="#{!act.Id}">
+                                                        <a class="accordion-toggle activityTitle" data-toggle="collapse" data-parent="#accordion3" href="#{!act.Id}" onclick="toggleacticons('{!act.Id}')">
                                                             {!act.Name}
+                                                            <apex:outputPanel rendered="{!IF(AND(act.Description__c == '', ISBLANK(act.Due_Date__c)), false, true)}">
+                                                                <i id="icondown{!act.Id}" class="icon-chevron-down downicon" style="display: ;"></i>
+                                                            </apex:outputPanel>
+                                                            <apex:outputPanel >
+                                                                <i id="iconup{!act.Id}" class="icon-chevron-up downicon" style="display: none;"></i>
+                                                            </apex:outputPanel>
                                                         </a>
                                                     </div>
-                                                    <apex:form >
+                                                    <apex:form rendered="{!IF(act.actAssignedTo__r.Name != '', true, false)}">
                                                         <div class="actAssignedUser" style="margin-left: 41px; padding-bottom:4px; font-size:10pt">Assigned To: 
                                                             <apex:outputText value=" {!act.actAssignedTo__r.Name}"/>                                                
                                                         </div>
