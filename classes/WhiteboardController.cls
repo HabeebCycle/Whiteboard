@@ -4,7 +4,8 @@ public with sharing class WhiteboardController {
     public String WhiteboardIdPersonal { get; set; }
     
     public List<User> AllUsers { get; set;}
-    public User assignedUser { get; set;}
+    
+    public String assignedUser { get; set; }
     
     public Whiteboard_Item_Activity__c activity { get; set; }
     public Whiteboard_Item__c Item { get; set; }
@@ -38,7 +39,7 @@ public with sharing class WhiteboardController {
         setBoardTitle(indicator);
         
         AllUsers = new List<User>();
-        assignedUser = new User();
+        assignedUser = null;
     }
     
 
@@ -260,21 +261,17 @@ public with sharing class WhiteboardController {
    }
    //////end of sidebar methods
     
-    public List<SelectOption> UserList
-    {
-        get
+    public List<SelectOption> getUserList() {
+        AllUsers = [Select Name, LastName, Id, FirstName, Username, Email From User];            
+        List<SelectOption> UserList = new List<SelectOption>();
+        UserList.add(new SelectOption('', 'None'));
+        
+        for(User temp : AllUsers)
         {
-            AllUsers = [Select u.Name, u.LastName, u.Id, u.FirstName, u.Username, u.Email From User u];            
-            UserList = new List<SelectOption>();
-            UserList.add(new SelectOption('None', 'None'));
-            
-            for(User temp : AllUsers)
-            {
-                UserList.add(new SelectOption(temp.Id, temp.Name));
-            }
-            return UserList;
+            UserList.add(new SelectOption(temp.Id, temp.Name));
         }
-        set;
+        
+        return UserList;
     }
     
     public void setBoardTitle(Boolean board) {
@@ -636,10 +633,20 @@ public with sharing class WhiteboardController {
             return null;   
         }
         try {
-            System.debug(Item);
-            if (Item.assignedTo__c == 'None') {
-             	Item.assignedTo__c = null;   
+            System.debug('Item: ' + Item);
+            System.debug('Assigned User: ' + assignedUser);
+
+            if (assignedUser == '') {
+                System.debug('No User');
+            } else {
+                List<User> users = [SELECT Name, Id FROM User WHERE Id =: assignedUser LIMIT 1];
+                if (users.size() > 0) {
+                    Item.assignedTo__r = users.get(0);
+                    System.debug('User: ' + users.get(0));
+                    Item.assignedTo__c = assignedUser;
+                }
             }
+            System.debug(Item);
             insert Item;
             Item = new Whiteboard_Item__c();
             
