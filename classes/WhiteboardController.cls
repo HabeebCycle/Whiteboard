@@ -23,7 +23,16 @@ public with sharing class WhiteboardController {
     
     public String searchValue { get; set; }
     public String selectListValue { get; set; }
-    public String selectListValueTwo { get; set; }    
+    public String selectListValueTwo { get; set; }
+    public String itemTaskSelection { get ; set; }
+    public Boolean itemActivity { get; set; }
+    public String Priority { get; set; }
+    public List<Whiteboard_Item__c> filteredList { get; set;}
+    public List<Whiteboard_Item__c> preFilteredList { get; set;}
+    Boolean result {get; set;}
+    Boolean success{get; set;}   
+    Opportunity o = new Opportunity();
+    public Opportunity getProxyObject() { return o; }
 
     // ************************ SETTING UP CONTROLLER AND POPULATING LISTS ****************************************************************
 
@@ -42,224 +51,3353 @@ public with sharing class WhiteboardController {
         assignedUser = null;
     }
     
+///////Side bar methods////////// 
+  public PageReference searchItems(){//When you type in the search bar, this method is called
+    
+        String search = searchValue;
+        List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
+         if(indicator == true){
+             filterItemActivity();
+             filterPriority();
+            filterDate();
+       }if(indicator == false){
+             filterItemActivity2();
+             filterPriority2();
+             filterDate2();
+         }
+ 
 
-    
-  ///////Side bar methods////////// 
-     public PageReference searchItems(){//method for typing in search bar
-    
-        String search = '%' + searchValue + '%';
-     
-        if(selectListValue.equals('PRIORITY')){
-            currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c =: false 
-                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                          LIMIT 30)
-                      FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c =: false AND Completed__c =: false AND High_Priority__c =:true AND Name LIKE :search
-                      ORDER BY High_Priority__c DESC, CreatedDate
-                      LIMIT 100];
-                      
-        }else if(selectListValue.equals('ALPHA')){
-            currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c =: false 
-                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate
-                          LIMIT 30)
-                      FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Name LIKE :search
-                      ORDER BY Name
-                      LIMIT 100];      
-                                     
-        }else  if(selectListValue.equals('DUEDATE')){
-            currentItems = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c =: false 
-                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate
-                          LIMIT 30)
-                      FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Name LIKE :search AND Item_Due_Date__c >=: (date.today())
-                      ORDER BY Item_Due_Date__c ASC NULLS LAST 
-                      LIMIT 100];     
-                      
-        }else{
-            currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c =: false 
-                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                          LIMIT 30)
-                      FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Name LIKE :search
-                      ORDER BY High_Priority__c DESC, CreatedDate
-                      LIMIT 100];                 
-        }
+     for(Whiteboard_Item__c WI: currentItems){
+           success = false;
+           for(Whiteboard_Item_Activity__c WA: WI.Whiteboard_Item_Activities__r){
+               result = WA.name.containsIgnoreCase(searchValue); 
+               if(result == true){
+                  success = true;
+               }
+           }
+                result = WI.name.containsIgnoreCase(searchValue);
+                        if(result == true){
+                             success = true;
+                        }    
+               if(success == true){
+             tempList.add(WI);
+            }
+       }      
+ currentItems = tempList;         
         return null;
     }
     
-   
-    public List<SelectOption> getItems() { //creates selection options for first selectList
+    
+    public List<SelectOption> getItemTask(){ //creates selection options for item v. task select list
+         List<SelectOption> options = new List<SelectOption>();
+            options.add(new SelectOption('NONE', '--Type--'));
+            options.add(new SelectOption('ITEM', 'Items'));
+            options.add(new SelectOption('ACTIVITY','Activities'));
+            return options;
+    }
+    
+    public PageReference ItemTaskSelected(){
+
+          if(indicator == true){
+             filterItemActivity();
+             filterPriority();
+             filterDate();
+         }
+             if(indicator == false){
+             filterItemActivity2();
+             filterPriority2();
+             filterDate2();
+         }
+    return null;
+    }
+
+   public List<SelectOption> getItems() { //creates selection options for priorities
             List<SelectOption> options = new List<SelectOption>();
-            options.add(new SelectOption('CREATED', 'Date Created'));
-            options.add(new SelectOption('PRIORITY','Priority'));
-            options.add(new SelectOption('DUEDATE','Date Due'));
-            options.add(new SelectOption('ALPHA','Alphabetical'));
+            options.add(new SelectOption('NONE', '--Priority--'));
+            options.add(new SelectOption('HIGH','High Priority'));
+            options.add(new SelectOption('NOPRIORITY','No Priority'));
             return options;
     }
           
-    public PageReference changeOrderBy(){ //method called when a filter is selected from the first selectList
+    public PageReference changeOrderBy(){ //method called when a filter is selected from the priorities selectList
+        if(indicator == true){
+             filterItemActivity();
+             filterPriority();
+             filterDate();
+         }
+          if(indicator == false){
+             filterItemActivity2();
+             filterPriority2();
+             filterDate2();
+         }
+        
+    return null;
+   }
     
-        String value = selectListValue;
-
-        if(value.equals('CREATED')){
+    public List<SelectOption> getItemsTwo() { //creates selection options for date selectList
+            List<SelectOption> options = new List<SelectOption>();
+            options.add(new SelectOption('NONE', '--Due Date--'));
+            options.add(new SelectOption('TODAY', 'Today'));
+            options.add(new SelectOption('TOMORROW', 'Tomorrow'));
+            options.add(new SelectOption('THISWEEK','This Week'));
+            options.add(new SelectOption('NEXTWEEK','Next Week'));
+            options.add(new SelectOption('THISMONTH','This Month'));
+            options.add(new SelectOption('NEXTMONTH','Next Month'));
+            options.add(new SelectOption('PAST', 'Past Due'));
+            return options;
+    }
+   
+   public PageReference changeOrderByTwo(){ //method called when a filter is selected from the date selectList
+   
+         if(indicator == true){
+             filterItemActivity();
+             filterPriority();
+             filterDate();
+         }
+          if(indicator == false){
+             filterItemActivity2();
+             filterPriority2();
+             filterDate2();
+         } 
         
-            getCompanyItems();
-        
-        }if(value.equals('ALPHA')){
+    return null;
+   }
+  ///////COMPANY WHITEBOARD SEARCH METHODS////////// 
+public void filterItemActivity(){ //filters list by Item or Activity
 
-             currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
+ List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
+
+        currentItems = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
                           FROM Whiteboard_Item_Activities__r
                           WHERE PersonalItem__c =: false 
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
                           LIMIT 30)
                       FROM Whiteboard_Item__c
                       WHERE PersonalItem__c =: false AND Completed__c =: false
-                      ORDER BY Name
+                      ORDER BY High_Priority__c DESC, CreatedDate
                       LIMIT 100];
-                      
-       }if(value.equals('PRIORITY')){
+          tempList = currentItems;
+         prefilteredList = currentItems;
+
+}
+
+public void filterPriority(){ //filters list by priority
+
+       List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
        
-              currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
+
+ if(itemTaskSelection.equals('ITEM')){
+
+      if(selectListValue.equals('HIGH')){
+                for(Whiteboard_Item__c WI: currentItems){
+                        if(WI.High_Priority__c == true){
+                              tempList.add(WI);
+                         }
+              }
+      } 
+     else if(selectListValue.equals('NOPRIORITY')){
+
+              for(Whiteboard_Item__c WI: currentItems){
+                    if(WI.High_Priority__c == false){
+                        tempList.add(WI);
+                      }
+              }
+    }
+  else if(selectListValue.equals('NONE')){
+
+           for(Whiteboard_Item__c WI: preFilteredList){
+                        tempList.add(WI);
+                      
+           }
+    }
+}
+
+if(itemTaskSelection.equals('NONE')){
+
+           if(selectListValue.equals('NONE')){
+          tempList = preFilteredList;
+          }
+
+          if(selectListValue.equals('HIGH')){
+           
+            List<Whiteboard_Item__c> set1 = new List<Whiteboard_Item__c>();
+            List<Whiteboard_Item__c> set2 = new List<Whiteboard_Item__c>();
+
+                 set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
                           FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c =: false 
+                          WHERE PersonalItem__c =: false AND High_Priority__c =: true
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
                           LIMIT 30)
                       FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c =: false AND Completed__c =: false and High_Priority__c =:true
+                      WHERE PersonalItem__c =: false AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+
+              For(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.high_priority__c == true){
+                      x = true;
+                   }
+              }
+              if(WI.High_Priority__c == true){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+        currentItems = tempList;
+}
+    else if(selectListValue.equals('NOPRIORITY')){
+
+            List<Whiteboard_Item__c> set3 = new List<Whiteboard_Item__c>();
+            List<Whiteboard_Item__c> set4 = new List<Whiteboard_Item__c>();
+
+                         set3 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =: false
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false AND High_Priority__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+
+                       set4 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =: false
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false AND High_Priority__c =: true  AND Activities__c >:0
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+                     
+                    set3.addAll(set4);
+                      tempList = set3; 
+
+    }
+}
+ if(itemTaskSelection.equals('ACTIVITY')){ //If Activities are selected
+   if(selectListValue.equals('HIGH')){
+               currentItems =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =: true
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false  AND Activities__c >:0
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+
+        for(Whiteboard_Item__c WI: currentItems){
+                 if(WI.Whiteboard_Item_Activities__r.size() != 0){
+                    tempList.add(WI);
+                 }
+         }
+    } 
+else if(selectListValue.equals('NOPRIORITY')){
+               currentItems =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:false
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+
+        for(Whiteboard_Item__c WI: currentItems){
+                 if(WI.Whiteboard_Item_Activities__r.size() != 0){
+                    tempList.add(WI);
+                 }
+         }
+    }
+ else if(selectListValue.equals('NONE')){
+
+
+
+ for(Whiteboard_Item__c WI: currentItems){
+          if(WI.Whiteboard_Item_Activities__r.size() != 0){
+                    tempList.add(WI);
+         }
+}
+} 
+}
+currentItems = tempList;
+}
+
+public void filterDate(){ //filters list by date due
+
+List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
+List<Whiteboard_Item__c> set1 = new List<Whiteboard_Item__c>();
+List<Whiteboard_Item__c> set2 = new List<Whiteboard_Item__c>();
+List<Whiteboard_Item__c> set3 = new List<Whiteboard_Item__c>();
+
+if(itemTaskSelection.equals('NONE') && selectListValue.equals('NONE')){
+
+       if(selectListValueTwo.equals('NONE')){
+
+        }
+
+      else if(selectListValueTwo.equals('TODAY')){
+             set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND Due_Date__c =: date.today()
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today()){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c == date.today()){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+     }
+
+     else if(selectListValueTwo.equals('TOMORROW')){
+
+    set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND Due_Date__c =: date.today().addDays(1)
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c =: date.today().addDays(1)
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today().addDays(1)){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c == date.today().addDays(1)){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+
+    else if(selectListValueTwo.equals('THISWEEK')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND Due_Date__c >=: date.today().toStartofWeek() AND Due_Date__c <: date.today().toStartofWeek().addDays(7) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
                       ORDER BY High_Priority__c DESC, CreatedDate
                       LIMIT 100];
        
-       }if(value.equals('DUEDATE')){
-       
-               currentItems = [SELECT Name, Id, Trashed__c, Completed__c, Item_Due_Date__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek() && WA.due_date__c < date.today().toStartofWeek().addDays(7)){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofWeek() && WI.Item_due_date__c < date.today().toStartofWeek().addDays(7)){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+   else if(selectListValueTwo.equals('NEXTWEEK')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
                           FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c =: false 
+                          WHERE PersonalItem__c =: false AND Due_Date__c >=:  date.today().toStartofWeek().addDays(7) AND Due_Date__c <: date.today().toStartofWeek().addDays(14) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek().addDays(7) && WA.due_date__c <  date.today().toStartofWeek().addDays(14)){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofWeek().addDays(7) && WI.Item_due_date__c <  date.today().toStartofWeek().addDays(14)){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+else if(selectListValueTwo.equals('THISMONTH')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND Due_Date__c >=:  date.today().toStartofMonth() AND Due_Date__c <: date.today().toStartofMonth().addMonths(1) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth() && WA.due_date__c < date.today().toStartofMonth().addMonths(1)){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofMonth() && WI.Item_due_date__c <  date.today().toStartofMonth().addMonths(1)){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+     }
+else if(selectListValueTwo.equals('NEXTMONTH')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND Due_Date__c >=:  date.today().toStartofMonth().addMonths(1) AND Due_Date__c <: date.today().toStartofMonth().addMonths(2) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth().addMonths(1) && WA.due_date__c < date.today().toStartofMonth().addMonths(2)){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofMonth().addMonths(1) && WI.Item_due_date__c <  date.today().toStartofMonth().addMonths(2)){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList; 
+     }
+else if(selectListValueTwo.equals('PAST')){
+
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r 
+                          WHERE PersonalItem__c =: false AND Due_Date__c <: date.today()
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){ 
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c < date.today()){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  < date.today()){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;            
+}
+}
+
+if(itemTaskSelection.equals('NONE') && selectListValue.equals('HIGH')){
+
+       if(selectListValueTwo.equals('NONE')){
+
+        }
+
+      else if(selectListValueTwo.equals('TODAY')){
+             set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:true AND Due_Date__c =: date.today() AND High_Priority__c =: true
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
                           LIMIT 30)
                       FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c >=: (date.today())
-                      ORDER BY Item_Due_Date__c ASC NULLS LAST
-                      LIMIT 100];       
-       }
-    return null;
-   }
+                      WHERE PersonalItem__c =: false AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+      
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today() && WA.high_priority__c == true){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c == date.today() && WI.high_priority__c == true){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+          currentItems = tempList;
+           }
+        }
+     }
+
+     else if(selectListValueTwo.equals('TOMORROW')){
+
+    set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:true AND Due_Date__c =: date.today().addDays(1)  AND High_Priority__c =: true
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today().addDays(1) && WA.high_priority__c == true){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c == date.today().addDays(1) && WI.high_priority__c == true){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+
+    else if(selectListValueTwo.equals('THISWEEK')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:true AND Due_Date__c >=: date.today().toStartofWeek() AND Due_Date__c <: date.today().toStartofWeek().addDays(7) AND High_Priority__c =: true
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek() && WA.due_date__c < date.today().toStartofWeek().addDays(7) && WA.high_priority__c == true){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofWeek() && WI.Item_due_date__c < date.today().toStartofWeek().addDays(7) && WI.high_priority__c == true){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+   else if(selectListValueTwo.equals('NEXTWEEK')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:true AND Due_Date__c >=:  date.today().toStartofWeek().addDays(7) AND Due_Date__c <: date.today().toStartofWeek().addDays(14) AND High_Priority__c =: true
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek().addDays(7) && WA.due_date__c <  date.today().toStartofWeek().addDays(14) && WA.high_priority__c == true){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofWeek().addDays(7) && WI.Item_due_date__c <  date.today().toStartofWeek().addDays(14) && WI.high_priority__c == true){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+else if(selectListValueTwo.equals('THISMONTH')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:true AND Due_Date__c >=:  date.today().toStartofMonth() AND Due_Date__c <: date.today().toStartofMonth().addMonths(1) AND High_Priority__c =: true
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth() && WA.due_date__c < date.today().toStartofMonth().addMonths(1) && WA.High_Priority__c == true){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofMonth() && WI.Item_due_date__c <  date.today().toStartofMonth().addMonths(1) && WI.High_Priority__c == true){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+     }
+else if(selectListValueTwo.equals('NEXTMONTH')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:true AND Due_Date__c >=:  date.today().toStartofMonth().addMonths(1) AND Due_Date__c <: date.today().toStartofMonth().addMonths(2) AND High_Priority__c =: true
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth().addMonths(1) && WA.due_date__c < date.today().toStartofMonth().addMonths(2) && WA.High_Priority__c == true){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofMonth().addMonths(1) && WI.Item_due_date__c <  date.today().toStartofMonth().addMonths(2) && WI.High_Priority__c == true){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList; 
+     }
+else if(selectListValueTwo.equals('PAST')){
+
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r 
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:true AND Due_Date__c <: date.today() AND High_Priority__c =: true
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){ 
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c < date.today() && WA.High_Priority__c == true){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  < date.today() && WI.High_Priority__c == true){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;            
+}
+}
+
+if(itemTaskSelection.equals('NONE') && selectListValue.equals('NOPRIORITY')){
+
+       if(selectListValueTwo.equals('NONE')){
+
+        }
+
+      else if(selectListValueTwo.equals('TODAY')){
+             set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:false AND Due_Date__c =: date.today()
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+      
+
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today() && WA.high_priority__c == false){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c == date.today() && WI.high_priority__c == false){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+     }
+
+     else if(selectListValueTwo.equals('TOMORROW')){
+
+    set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:false AND Due_Date__c =: date.today().addDays(1)  AND High_Priority__c =: false
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today().addDays(1) && WA.high_priority__c == false){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c == date.today().addDays(1) && WI.high_priority__c == false){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+
+    else if(selectListValueTwo.equals('THISWEEK')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:false AND Due_Date__c >=: date.today().toStartofWeek() AND Due_Date__c <: date.today().toStartofWeek().addDays(7) AND High_Priority__c =: false
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek() && WA.due_date__c < date.today().toStartofWeek().addDays(7) && WA.high_priority__c == false){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofWeek() && WI.Item_due_date__c < date.today().toStartofWeek().addDays(7) && WI.high_priority__c == false){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+   else if(selectListValueTwo.equals('NEXTWEEK')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:false AND Due_Date__c >=:  date.today().toStartofWeek().addDays(7) AND Due_Date__c <: date.today().toStartofWeek().addDays(14) AND High_Priority__c =: false
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek().addDays(7) && WA.due_date__c <  date.today().toStartofWeek().addDays(14) && WA.high_priority__c == false){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofWeek().addDays(7) && WI.Item_due_date__c <  date.today().toStartofWeek().addDays(14) && WI.high_priority__c == false){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+else if(selectListValueTwo.equals('THISMONTH')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:false AND Due_Date__c >=:  date.today().toStartofMonth() AND Due_Date__c <: date.today().toStartofMonth().addMonths(1) AND High_Priority__c =: false
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth() && WA.due_date__c < date.today().toStartofMonth().addMonths(1) && WA.High_Priority__c == false){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofMonth() && WI.Item_due_date__c <  date.today().toStartofMonth().addMonths(1) && WI.High_Priority__c == false){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+     }
+else if(selectListValueTwo.equals('NEXTMONTH')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:false AND Due_Date__c >=:  date.today().toStartofMonth().addMonths(1) AND Due_Date__c <: date.today().toStartofMonth().addMonths(2) AND High_Priority__c =: false
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth().addMonths(1) && WA.due_date__c < date.today().toStartofMonth().addMonths(2) && WA.High_Priority__c == false){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofMonth().addMonths(1) && WI.Item_due_date__c <  date.today().toStartofMonth().addMonths(2) && WI.High_Priority__c == false){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList; 
+     }
+else if(selectListValueTwo.equals('PAST')){
+
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r 
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:false AND Due_Date__c <: date.today() AND High_Priority__c =: false
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){ 
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c < date.today() && WA.High_Priority__c == false){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  < date.today() && WI.High_Priority__c == false){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;            
+}
+}
+
+//////
+if(itemTaskSelection.equals('ITEM') && selectListValue.equals('HIGH')){
+
+       if(selectListValueTwo.equals('NONE')){
+
+        }
     
-    public List<SelectOption> getItemsTwo() { //creates selection options for second selectList
-            List<SelectOption> options = new List<SelectOption>();
-            options.add(new SelectOption('TODAY', 'Today'));
-            options.add(new SelectOption('DAY', 'Tomorrow'));
-            options.add(new SelectOption('WEEK','In Next Week'));
-            options.add(new SelectOption('MONTH','In Next Month'));
-            options.add(new SelectOption('YEAR','In Next Year'));
-            options.add(new SelectOption('PAST', 'Past Due'));
-            return options;
-    }
-   
-   public PageReference changeOrderByTwo(){ //method called when a filter is selected from the second selectList
-   
-   
-        if(selectListValueTwo.equals('TODAY')){
-       
-            currentItems = [SELECT Name, Id, Trashed__c, Completed__c, Item_Due_Date__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
+       if(selectListValueTwo.equals('TODAY')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c == date.today() && WI.High_Priority__c == true){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+
+       else if(selectListValueTwo.equals('TOMORROW')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c == date.today().addDays(1) && WI.High_Priority__c == true){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+
+      else if(selectListValueTwo.equals('THISWEEK')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofWeek() && WI.Item_Due_Date__c < date.today().toStartofWeek().addDays(7) && WI.High_Priority__c == true){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+      else if(selectListValueTwo.equals('NEXTWEEK')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofWeek().addDays(7) && WI.Item_Due_Date__c < date.today().toStartofWeek().addDays(14) && WI.High_Priority__c == true){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+      else if(selectListValueTwo.equals('THISMONTH')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofMonth() && WI.Item_Due_Date__c < date.today().toStartofMonth().addMonths(1) && WI.High_Priority__c == true){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+     else if(selectListValueTwo.equals('NEXTMONTH')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofMonth().addMonths(1) && WI.Item_Due_Date__c < date.today().toStartofMonth().addMonths(2) && WI.High_Priority__c == true){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+     else if(selectListValueTwo.equals('PAST')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c < date.today() && WI.High_Priority__c == true){
+                         tempList.add(WI);
+                   }
+             }
+      currentItems = tempList;
+     }
+}
+
+if(itemTaskSelection.equals('ITEM') && selectListValue.equals('NOPRIORITY')){
+
+       if(selectListValueTwo.equals('NONE')){
+
+        }
+    
+       if(selectListValueTwo.equals('TODAY')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c == date.today() && WI.High_Priority__c == false){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+
+       else if(selectListValueTwo.equals('TOMORROW')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c == date.today().addDays(1) && WI.High_Priority__c == false){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+
+      else if(selectListValueTwo.equals('THISWEEK')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofWeek() && WI.Item_Due_Date__c < date.today().toStartofWeek().addDays(7) && WI.High_Priority__c == false){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+      else if(selectListValueTwo.equals('NEXTWEEK')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofWeek().addDays(7) && WI.Item_Due_Date__c < date.today().toStartofWeek().addDays(14) && WI.High_Priority__c == false){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+      else if(selectListValueTwo.equals('THISMONTH')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofMonth() && WI.Item_Due_Date__c < date.today().toStartofMonth().addMonths(1) && WI.High_Priority__c == false){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+     else if(selectListValueTwo.equals('NEXTMONTH')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofMonth().addMonths(1) && WI.Item_Due_Date__c < date.today().toStartofMonth().addMonths(2) && WI.High_Priority__c == false){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+     else if(selectListValueTwo.equals('PAST')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c < date.today() && WI.High_Priority__c == false){
+                         tempList.add(WI);
+                   }
+             }
+      currentItems = tempList;
+     }
+}
+
+if(itemTaskSelection.equals('ITEM') && selectListValue.equals('NONE')){
+
+       if(selectListValueTwo.equals('NONE')){
+
+        }
+    
+       if(selectListValueTwo.equals('TODAY')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c == date.today()){
+                         tempList.add(WI);
+                   }
+             }
+    currentItems = tempList;
+     }
+
+       else if(selectListValueTwo.equals('TOMORROW')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c == date.today().addDays(1)){
+                         tempList.add(WI);
+                   }
+             }
+    currentItems = tempList;
+     }
+
+      else if(selectListValueTwo.equals('THISWEEK')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofWeek() && WI.Item_Due_Date__c < date.today().toStartofWeek().addDays(7)){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+      else if(selectListValueTwo.equals('NEXTWEEK')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofWeek().addDays(7) && WI.Item_Due_Date__c < date.today().toStartofWeek().addDays(14)){
+                         tempList.add(WI);
+                   }
+             }
+      currentItems = tempList;
+     }
+      else if(selectListValueTwo.equals('THISMONTH')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofMonth() && WI.Item_Due_Date__c < date.today().toStartofMonth().addMonths(1)){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+     else if(selectListValueTwo.equals('NEXTMONTH')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofMonth().addMonths(1) && WI.Item_Due_Date__c < date.today().toStartofMonth().addMonths(2)){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+     else if(selectListValueTwo.equals('PAST')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c < date.today()){
+                         tempList.add(WI);
+                   }
+             }
+       currentItems = tempList;
+     }
+}
+
+if(itemTaskSelection.equals('ACTIVITY') && selectListValue.equals('NONE')){
+
+       if(selectListValueTwo.equals('NONE')){
+
+        }
+
+      else if(selectListValueTwo.equals('TODAY')){
+             set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
                           FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c =: false 
+                          WHERE PersonalItem__c =: false AND Due_Date__c =: date.today()
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
                           LIMIT 30)
                       FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c =: (date.today())
-                      ORDER BY Item_Due_Date__c ASC NULLS LAST
+                      WHERE PersonalItem__c =: false AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
                       LIMIT 100];
-           }
-   
-       if(selectListValueTwo.equals('DAY')){
-       
-            currentItems = [SELECT Name, Id, Trashed__c, Completed__c, Item_Due_Date__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c =: false 
-                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                          LIMIT 30)
-                      FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c =: (date.today().addDays(1))
-                      ORDER BY Item_Due_Date__c ASC NULLS LAST
-                      LIMIT 100];
-           }
            
-         if(selectListValueTwo.equals('WEEK')){
-       
-            currentItems = [SELECT Name, Id, Trashed__c, Completed__c, Item_Due_Date__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c =: false 
-                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                          LIMIT 30)
-                      FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c <=: (date.today().addDays(7)) AND Item_Due_Date__c >=: (date.today())
-                      ORDER BY Item_Due_Date__c ASC NULLS LAST
-                      LIMIT 100];
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today()){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
            }
-          if(selectListValueTwo.equals('MONTH')){
-       
-            currentItems = [SELECT Name, Id, Trashed__c, Completed__c, Item_Due_Date__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
+        }
+       currentItems = tempList;
+     }
+
+     else if(selectListValueTwo.equals('TOMORROW')){
+
+    set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
                           FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c =: false 
+                          WHERE PersonalItem__c =: false AND Due_Date__c =: date.today().addDays(1)
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
                           LIMIT 30)
                       FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c <=: (date.today().addMonths(1)) AND Item_Due_Date__c >=: (date.today())
-                      ORDER BY Item_Due_Date__c ASC NULLS LAST
+                      WHERE PersonalItem__c =: false AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
                       LIMIT 100];
-           } 
-         if(selectListValueTwo.equals('YEAR')){
-       
-            currentItems = [SELECT Name, Id, Trashed__c, Completed__c, Item_Due_Date__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c =: false 
-                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                          LIMIT 30)
-                      FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c <=: (date.today().addYears(1)) AND Item_Due_Date__c >=: (date.today())
-                      ORDER BY Item_Due_Date__c ASC NULLS LAST
-                      LIMIT 100];
-           } 
-          if(selectListValueTwo.equals('PAST')){
-       
-            currentItems = [SELECT Name, Id, Trashed__c, Completed__c, Item_Due_Date__c, High_Priority__c, Completedby__c, CompletedBy__r.Name,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c =: false 
-                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                          LIMIT 30)
-                      FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c =: false AND Completed__c =: false AND Item_Due_Date__c <: (date.today())
-                      ORDER BY Item_Due_Date__c ASC NULLS LAST
-                      LIMIT 100];
+
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today().addDays(1)){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
            }
+        }
+       currentItems = tempList;
+
+     }
+
+    else if(selectListValueTwo.equals('THISWEEK')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND Due_Date__c >=: date.today().toStartofWeek() AND Due_Date__c <: date.today().toStartofWeek().addDays(7) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
        
-   
-   
-   return null;
-   }
-   //////end of sidebar methods
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek() && WA.due_date__c < date.today().toStartofWeek().addDays(7)){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+   else if(selectListValueTwo.equals('NEXTWEEK')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND Due_Date__c >=:  date.today().toStartofWeek().addDays(7) AND Due_Date__c <: date.today().toStartofWeek().addDays(14) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek().addDays(7) && WA.due_date__c <  date.today().toStartofWeek().addDays(14)){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+else if(selectListValueTwo.equals('THISMONTH')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND Due_Date__c >=:  date.today().toStartofMonth() AND Due_Date__c <: date.today().toStartofMonth().addMonths(1) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth() && WA.due_date__c < date.today().toStartofMonth().addMonths(1)){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+     }
+else if(selectListValueTwo.equals('NEXTMONTH')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND Due_Date__c >=:  date.today().toStartofMonth().addMonths(1) AND Due_Date__c <: date.today().toStartofMonth().addMonths(2) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth().addMonths(1) && WA.due_date__c < date.today().toStartofMonth().addMonths(2)){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList; 
+     }
+else if(selectListValueTwo.equals('PAST')){
+
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r 
+                          WHERE PersonalItem__c =: false AND Due_Date__c <: date.today()
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){ 
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c < date.today()){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;            
+}
+}
+
+if(itemTaskSelection.equals('ACTIVITY') && selectListValue.equals('HIGH')){
+
+       if(selectListValueTwo.equals('NONE')){
+
+        }
+
+      else if(selectListValueTwo.equals('TODAY')){
+             set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:true AND Due_Date__c =: date.today()
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       System.debug(' I get here 1');
+           
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.High_Priority__c == true){
+                    System.debug(' I get here 2');
+           
+                      x = true;
+                   }
+              }
+           if(x == true){
+           System.debug(' I get here 3');
+           
+           tempList.add(WI);
+           }
+        }
+       System.debug(' I get here 4');           
+       currentItems = tempList;
+     }
+
+     else if(selectListValueTwo.equals('TOMORROW')){
+
+    set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:true AND Due_Date__c =: date.today().addDays(1)
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today().addDays(1) && WA.High_Priority__c == true){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+
+    else if(selectListValueTwo.equals('THISWEEK')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:true AND Due_Date__c >=: date.today().toStartofWeek() AND Due_Date__c <: date.today().toStartofWeek().addDays(7) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek() && WA.due_date__c < date.today().toStartofWeek().addDays(7) && WA.High_Priority__c == true){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+   else if(selectListValueTwo.equals('NEXTWEEK')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:true AND Due_Date__c >=:  date.today().toStartofWeek().addDays(7) AND Due_Date__c <: date.today().toStartofWeek().addDays(14) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek().addDays(7) && WA.due_date__c <  date.today().toStartofWeek().addDays(14) && WA.High_Priority__c == true){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+else if(selectListValueTwo.equals('THISMONTH')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:true AND Due_Date__c >=:  date.today().toStartofMonth() AND Due_Date__c <: date.today().toStartofMonth().addMonths(1) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth() && WA.due_date__c < date.today().toStartofMonth().addMonths(1) && WA.High_Priority__c == true){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+     }
+else if(selectListValueTwo.equals('NEXTMONTH')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:true AND Due_Date__c >=:  date.today().toStartofMonth().addMonths(1) AND Due_Date__c <: date.today().toStartofMonth().addMonths(2) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth().addMonths(1) && WA.due_date__c < date.today().toStartofMonth().addMonths(2) && WA.High_Priority__c == true){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList; 
+     }
+else if(selectListValueTwo.equals('PAST')){
+
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r 
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:true AND Due_Date__c <: date.today()
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){ 
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r ){
+                   if(WA.due_date__c < date.today() && WA.High_Priority__c == true){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;            
+}
+}
+
+if(itemTaskSelection.equals('ACTIVITY') && selectListValue.equals('NOPRIORITY')){
+
+       if(selectListValueTwo.equals('NONE')){
+
+        }
+
+      else if(selectListValueTwo.equals('TODAY')){
+             set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:false AND Due_Date__c =: date.today()
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+           
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.High_Priority__c == false){           
+                      x = true;
+                   }
+              }
+           if(x == true){           
+           tempList.add(WI);
+           }
+        }         
+       currentItems = tempList;
+     }
+     else if(selectListValueTwo.equals('TOMORROW')){
+
+    set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:false AND Due_Date__c =: date.today().addDays(1)
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: false AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today().addDays(1) && WA.High_Priority__c == false){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+
+    else if(selectListValueTwo.equals('THISWEEK')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:false AND Due_Date__c >=: date.today().toStartofWeek() AND Due_Date__c <: date.today().toStartofWeek().addDays(7) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek() && WA.due_date__c < date.today().toStartofWeek().addDays(7) && WA.High_Priority__c == false){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+   else if(selectListValueTwo.equals('NEXTWEEK')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:false AND Due_Date__c >=:  date.today().toStartofWeek().addDays(7) AND Due_Date__c <: date.today().toStartofWeek().addDays(14) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek().addDays(7) && WA.due_date__c <  date.today().toStartofWeek().addDays(14) && WA.High_Priority__c == false){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+else if(selectListValueTwo.equals('THISMONTH')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:false AND Due_Date__c >=:  date.today().toStartofMonth() AND Due_Date__c <: date.today().toStartofMonth().addMonths(1) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth() && WA.due_date__c < date.today().toStartofMonth().addMonths(1) && WA.High_Priority__c == false){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+     }
+else if(selectListValueTwo.equals('NEXTMONTH')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:false AND Due_Date__c >=:  date.today().toStartofMonth().addMonths(1) AND Due_Date__c <: date.today().toStartofMonth().addMonths(2) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth().addMonths(1) && WA.due_date__c < date.today().toStartofMonth().addMonths(2) && WA.High_Priority__c == false){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList; 
+     }
+else if(selectListValueTwo.equals('PAST')){
+
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r 
+                          WHERE PersonalItem__c =: false AND High_Priority__c =:false AND Due_Date__c <: date.today()
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: false AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){ 
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r ){
+                   if(WA.due_date__c < date.today() && WA.High_Priority__c == false){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;            
+}
+}
+
+}
+  ///////PERSONAL WHITEBOARD SEARCH METHODS//////////
+
+public void filterItemActivity2(){ //filters list by Item or Activity
+
+ List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
+
+        currentItems =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: true AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+          tempList = currentItems;
+         prefilteredList = currentItems;
+}
+
+public void filterPriority2(){ //filters list by priority
+
+       List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
+       
+
+ if(itemTaskSelection.equals('ITEM')){
+
+      if(selectListValue.equals('HIGH')){
+                for(Whiteboard_Item__c WI: currentItems){
+                        if(WI.High_Priority__c == true){
+                              tempList.add(WI);
+                         }
+              }
+      } 
+     else if(selectListValue.equals('NOPRIORITY')){
+
+              for(Whiteboard_Item__c WI: currentItems){
+                    if(WI.High_Priority__c == false){
+                        tempList.add(WI);
+                      }
+              }
+    }
+  else if(selectListValue.equals('NONE')){
+
+           for(Whiteboard_Item__c WI: preFilteredList){
+                        tempList.add(WI);
+                      
+           }
+    }
+}
+
+if(itemTaskSelection.equals('NONE')){
+
+           if(selectListValue.equals('NONE')){
+          tempList = preFilteredList;
+          }
+
+          if(selectListValue.equals('HIGH')){
+           
+            List<Whiteboard_Item__c> set1 = new List<Whiteboard_Item__c>();
+            List<Whiteboard_Item__c> set2 = new List<Whiteboard_Item__c>();
+
+                 set1 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =: true
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: true AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+
+              For(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.high_priority__c == true){
+                      x = true;
+                   }
+              }
+              if(WI.High_Priority__c == true){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+        currentItems = tempList;
+}
+    else if(selectListValue.equals('NOPRIORITY')){
+
+            List<Whiteboard_Item__c> set3 = new List<Whiteboard_Item__c>();
+            List<Whiteboard_Item__c> set4 = new List<Whiteboard_Item__c>();
+
+                         set3 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =: false
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: true AND Completed__c =: false AND High_Priority__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+
+                       set4 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =: false
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: true AND Completed__c =: false AND High_Priority__c =: true  AND Activities__c >:0
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+                     
+                    set3.addAll(set4);
+                      tempList = set3; 
+
+    }
+}
+ if(itemTaskSelection.equals('ACTIVITY')){ //If Activities are selected
+   if(selectListValue.equals('HIGH')){
+               currentItems =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =: true
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: true AND Completed__c =: false  AND Activities__c >:0
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+
+        for(Whiteboard_Item__c WI: currentItems){
+                 if(WI.Whiteboard_Item_Activities__r.size() != 0){
+                    tempList.add(WI);
+                 }
+         }
+    } 
+else if(selectListValue.equals('NOPRIORITY')){
+               currentItems =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:false
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: true AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+
+        for(Whiteboard_Item__c WI: currentItems){
+                 if(WI.Whiteboard_Item_Activities__r.size() != 0){
+                    tempList.add(WI);
+                 }
+         }
+    }
+ else if(selectListValue.equals('NONE')){
+
+
+
+ for(Whiteboard_Item__c WI: currentItems){
+          if(WI.Whiteboard_Item_Activities__r.size() != 0){
+                    tempList.add(WI);
+         }
+}
+} 
+}
+currentItems = tempList;
+}
+
+public void filterDate2(){ //filters list by date due
+
+List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
+List<Whiteboard_Item__c> set1 = new List<Whiteboard_Item__c>();
+List<Whiteboard_Item__c> set2 = new List<Whiteboard_Item__c>();
+List<Whiteboard_Item__c> set3 = new List<Whiteboard_Item__c>();
+
+if(itemTaskSelection.equals('NONE') && selectListValue.equals('NONE')){
+
+       if(selectListValueTwo.equals('NONE')){
+
+        }
+
+      else if(selectListValueTwo.equals('TODAY')){
+             set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND Due_Date__c =: date.today()
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: true AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today()){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c == date.today()){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+     }
+
+     else if(selectListValueTwo.equals('TOMORROW')){
+
+    set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND Due_Date__c =: date.today().addDays(1)
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: true AND Completed__c =: false AND Item_Due_Date__c =: date.today().addDays(1)
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today().addDays(1)){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c == date.today().addDays(1)){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+
+    else if(selectListValueTwo.equals('THISWEEK')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND Due_Date__c >=: date.today().toStartofWeek() AND Due_Date__c <: date.today().toStartofWeek().addDays(7) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek() && WA.due_date__c < date.today().toStartofWeek().addDays(7)){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofWeek() && WI.Item_due_date__c < date.today().toStartofWeek().addDays(7)){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+   else if(selectListValueTwo.equals('NEXTWEEK')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND Due_Date__c >=:  date.today().toStartofWeek().addDays(7) AND Due_Date__c <: date.today().toStartofWeek().addDays(14) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek().addDays(7) && WA.due_date__c <  date.today().toStartofWeek().addDays(14)){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofWeek().addDays(7) && WI.Item_due_date__c <  date.today().toStartofWeek().addDays(14)){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+else if(selectListValueTwo.equals('THISMONTH')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND Due_Date__c >=:  date.today().toStartofMonth() AND Due_Date__c <: date.today().toStartofMonth().addMonths(1) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth() && WA.due_date__c < date.today().toStartofMonth().addMonths(1)){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofMonth() && WI.Item_due_date__c <  date.today().toStartofMonth().addMonths(1)){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+     }
+else if(selectListValueTwo.equals('NEXTMONTH')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND Due_Date__c >=:  date.today().toStartofMonth().addMonths(1) AND Due_Date__c <: date.today().toStartofMonth().addMonths(2) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth().addMonths(1) && WA.due_date__c < date.today().toStartofMonth().addMonths(2)){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofMonth().addMonths(1) && WI.Item_due_date__c <  date.today().toStartofMonth().addMonths(2)){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList; 
+     }
+else if(selectListValueTwo.equals('PAST')){
+
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r 
+                          WHERE PersonalItem__c =: true AND Due_Date__c <: date.today()
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){ 
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c < date.today()){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  < date.today()){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;            
+}
+}
+
+if(itemTaskSelection.equals('NONE') && selectListValue.equals('HIGH')){
+
+       if(selectListValueTwo.equals('NONE')){
+
+        }
+
+      else if(selectListValueTwo.equals('TODAY')){
+             set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:true AND Due_Date__c =: date.today() AND High_Priority__c =: true
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: true AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+      
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today() && WA.high_priority__c == true){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c == date.today() && WI.high_priority__c == true){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+          currentItems = tempList;
+           }
+        }
+     }
+
+     else if(selectListValueTwo.equals('TOMORROW')){
+
+    set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:true AND Due_Date__c =: date.today().addDays(1)  AND High_Priority__c =: true
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: true AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today().addDays(1) && WA.high_priority__c == true){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c == date.today().addDays(1) && WI.high_priority__c == true){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+
+    else if(selectListValueTwo.equals('THISWEEK')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:true AND Due_Date__c >=: date.today().toStartofWeek() AND Due_Date__c <: date.today().toStartofWeek().addDays(7) AND High_Priority__c =: true
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek() && WA.due_date__c < date.today().toStartofWeek().addDays(7) && WA.high_priority__c == true){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofWeek() && WI.Item_due_date__c < date.today().toStartofWeek().addDays(7) && WI.high_priority__c == true){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+   else if(selectListValueTwo.equals('NEXTWEEK')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:true AND Due_Date__c >=:  date.today().toStartofWeek().addDays(7) AND Due_Date__c <: date.today().toStartofWeek().addDays(14) AND High_Priority__c =: true
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek().addDays(7) && WA.due_date__c <  date.today().toStartofWeek().addDays(14) && WA.high_priority__c == true){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofWeek().addDays(7) && WI.Item_due_date__c <  date.today().toStartofWeek().addDays(14) && WI.high_priority__c == true){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+else if(selectListValueTwo.equals('THISMONTH')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:true AND Due_Date__c >=:  date.today().toStartofMonth() AND Due_Date__c <: date.today().toStartofMonth().addMonths(1) AND High_Priority__c =: true
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth() && WA.due_date__c < date.today().toStartofMonth().addMonths(1) && WA.High_Priority__c == true){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofMonth() && WI.Item_due_date__c <  date.today().toStartofMonth().addMonths(1) && WI.High_Priority__c == true){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+     }
+else if(selectListValueTwo.equals('NEXTMONTH')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:true AND Due_Date__c >=:  date.today().toStartofMonth().addMonths(1) AND Due_Date__c <: date.today().toStartofMonth().addMonths(2) AND High_Priority__c =: true
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth().addMonths(1) && WA.due_date__c < date.today().toStartofMonth().addMonths(2) && WA.High_Priority__c == true){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofMonth().addMonths(1) && WI.Item_due_date__c <  date.today().toStartofMonth().addMonths(2) && WI.High_Priority__c == true){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList; 
+     }
+else if(selectListValueTwo.equals('PAST')){
+
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r 
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:true AND Due_Date__c <: date.today() AND High_Priority__c =: true
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){ 
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c < date.today() && WA.High_Priority__c == true){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  < date.today() && WI.High_Priority__c == true){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;            
+}
+}
+
+if(itemTaskSelection.equals('NONE') && selectListValue.equals('NOPRIORITY')){
+
+       if(selectListValueTwo.equals('NONE')){
+
+        }
+
+      else if(selectListValueTwo.equals('TODAY')){
+             set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:false AND Due_Date__c =: date.today()
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: true AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+      
+
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today() && WA.high_priority__c == false){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c == date.today() && WI.high_priority__c == false){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+     }
+
+     else if(selectListValueTwo.equals('TOMORROW')){
+
+    set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:false AND Due_Date__c =: date.today().addDays(1)  AND High_Priority__c =: false
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: true AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today().addDays(1) && WA.high_priority__c == false){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c == date.today().addDays(1) && WI.high_priority__c == false){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+
+    else if(selectListValueTwo.equals('THISWEEK')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:false AND Due_Date__c >=: date.today().toStartofWeek() AND Due_Date__c <: date.today().toStartofWeek().addDays(7) AND High_Priority__c =: false
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek() && WA.due_date__c < date.today().toStartofWeek().addDays(7) && WA.high_priority__c == false){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofWeek() && WI.Item_due_date__c < date.today().toStartofWeek().addDays(7) && WI.high_priority__c == false){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+   else if(selectListValueTwo.equals('NEXTWEEK')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:false AND Due_Date__c >=:  date.today().toStartofWeek().addDays(7) AND Due_Date__c <: date.today().toStartofWeek().addDays(14) AND High_Priority__c =: false
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek().addDays(7) && WA.due_date__c <  date.today().toStartofWeek().addDays(14) && WA.high_priority__c == false){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofWeek().addDays(7) && WI.Item_due_date__c <  date.today().toStartofWeek().addDays(14) && WI.high_priority__c == false){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+else if(selectListValueTwo.equals('THISMONTH')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:false AND Due_Date__c >=:  date.today().toStartofMonth() AND Due_Date__c <: date.today().toStartofMonth().addMonths(1) AND High_Priority__c =: false
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth() && WA.due_date__c < date.today().toStartofMonth().addMonths(1) && WA.High_Priority__c == false){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofMonth() && WI.Item_due_date__c <  date.today().toStartofMonth().addMonths(1) && WI.High_Priority__c == false){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+     }
+else if(selectListValueTwo.equals('NEXTMONTH')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:false AND Due_Date__c >=:  date.today().toStartofMonth().addMonths(1) AND Due_Date__c <: date.today().toStartofMonth().addMonths(2) AND High_Priority__c =: false
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth().addMonths(1) && WA.due_date__c < date.today().toStartofMonth().addMonths(2) && WA.High_Priority__c == false){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  >= date.today().toStartofMonth().addMonths(1) && WI.Item_due_date__c <  date.today().toStartofMonth().addMonths(2) && WI.High_Priority__c == false){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList; 
+     }
+else if(selectListValueTwo.equals('PAST')){
+
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r 
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:false AND Due_Date__c <: date.today() AND High_Priority__c =: false
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){ 
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c < date.today() && WA.High_Priority__c == false){
+                      x = true;
+                   }
+              }
+              if(WI.Item_Due_Date__c  < date.today() && WI.High_Priority__c == false){
+               x = true;
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;            
+}
+}
+
+//////
+if(itemTaskSelection.equals('ITEM') && selectListValue.equals('HIGH')){
+
+       if(selectListValueTwo.equals('NONE')){
+
+        }
+    
+       if(selectListValueTwo.equals('TODAY')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c == date.today() && WI.High_Priority__c == true){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+
+       else if(selectListValueTwo.equals('TOMORROW')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c == date.today().addDays(1) && WI.High_Priority__c == true){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+
+      else if(selectListValueTwo.equals('THISWEEK')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofWeek() && WI.Item_Due_Date__c < date.today().toStartofWeek().addDays(7) && WI.High_Priority__c == true){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+      else if(selectListValueTwo.equals('NEXTWEEK')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofWeek().addDays(7) && WI.Item_Due_Date__c < date.today().toStartofWeek().addDays(14) && WI.High_Priority__c == true){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+      else if(selectListValueTwo.equals('THISMONTH')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofMonth() && WI.Item_Due_Date__c < date.today().toStartofMonth().addMonths(1) && WI.High_Priority__c == true){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+     else if(selectListValueTwo.equals('NEXTMONTH')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofMonth().addMonths(1) && WI.Item_Due_Date__c < date.today().toStartofMonth().addMonths(2) && WI.High_Priority__c == true){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+     else if(selectListValueTwo.equals('PAST')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c < date.today() && WI.High_Priority__c == true){
+                         tempList.add(WI);
+                   }
+             }
+      currentItems = tempList;
+     }
+}
+
+if(itemTaskSelection.equals('ITEM') && selectListValue.equals('NOPRIORITY')){
+
+       if(selectListValueTwo.equals('NONE')){
+
+        }
+    
+       if(selectListValueTwo.equals('TODAY')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c == date.today() && WI.High_Priority__c == false){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+
+       else if(selectListValueTwo.equals('TOMORROW')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c == date.today().addDays(1) && WI.High_Priority__c == false){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+
+      else if(selectListValueTwo.equals('THISWEEK')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofWeek() && WI.Item_Due_Date__c < date.today().toStartofWeek().addDays(7) && WI.High_Priority__c == false){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+      else if(selectListValueTwo.equals('NEXTWEEK')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofWeek().addDays(7) && WI.Item_Due_Date__c < date.today().toStartofWeek().addDays(14) && WI.High_Priority__c == false){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+      else if(selectListValueTwo.equals('THISMONTH')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofMonth() && WI.Item_Due_Date__c < date.today().toStartofMonth().addMonths(1) && WI.High_Priority__c == false){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+     else if(selectListValueTwo.equals('NEXTMONTH')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofMonth().addMonths(1) && WI.Item_Due_Date__c < date.today().toStartofMonth().addMonths(2) && WI.High_Priority__c == false){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+     else if(selectListValueTwo.equals('PAST')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c < date.today() && WI.High_Priority__c == false){
+                         tempList.add(WI);
+                   }
+             }
+      currentItems = tempList;
+     }
+}
+
+if(itemTaskSelection.equals('ITEM') && selectListValue.equals('NONE')){
+
+       if(selectListValueTwo.equals('NONE')){
+
+        }
+    
+       if(selectListValueTwo.equals('TODAY')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c == date.today()){
+                         tempList.add(WI);
+                   }
+             }
+    currentItems = tempList;
+     }
+
+       else if(selectListValueTwo.equals('TOMORROW')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c == date.today().addDays(1)){
+                         tempList.add(WI);
+                   }
+             }
+    currentItems = tempList;
+     }
+
+      else if(selectListValueTwo.equals('THISWEEK')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofWeek() && WI.Item_Due_Date__c < date.today().toStartofWeek().addDays(7)){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+      else if(selectListValueTwo.equals('NEXTWEEK')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofWeek().addDays(7) && WI.Item_Due_Date__c < date.today().toStartofWeek().addDays(14)){
+                         tempList.add(WI);
+                   }
+             }
+      currentItems = tempList;
+     }
+      else if(selectListValueTwo.equals('THISMONTH')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofMonth() && WI.Item_Due_Date__c < date.today().toStartofMonth().addMonths(1)){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+     else if(selectListValueTwo.equals('NEXTMONTH')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c >= date.today().toStartofMonth().addMonths(1) && WI.Item_Due_Date__c < date.today().toStartofMonth().addMonths(2)){
+                         tempList.add(WI);
+                   }
+             }
+     currentItems = tempList;
+     }
+     else if(selectListValueTwo.equals('PAST')){
+            for(Whiteboard_Item__c WI: prefilteredList){
+                  if(WI.Item_Due_Date__c < date.today()){
+                         tempList.add(WI);
+                   }
+             }
+       currentItems = tempList;
+     }
+}
+
+if(itemTaskSelection.equals('ACTIVITY') && selectListValue.equals('NONE')){
+
+       if(selectListValueTwo.equals('NONE')){
+
+        }
+
+      else if(selectListValueTwo.equals('TODAY')){
+             set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND Due_Date__c =: date.today()
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: true AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+           
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today()){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+     }
+
+     else if(selectListValueTwo.equals('TOMORROW')){
+
+    set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND Due_Date__c =: date.today().addDays(1)
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: true AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today().addDays(1)){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+
+    else if(selectListValueTwo.equals('THISWEEK')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND Due_Date__c >=: date.today().toStartofWeek() AND Due_Date__c <: date.today().toStartofWeek().addDays(7) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek() && WA.due_date__c < date.today().toStartofWeek().addDays(7)){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+   else if(selectListValueTwo.equals('NEXTWEEK')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND Due_Date__c >=:  date.today().toStartofWeek().addDays(7) AND Due_Date__c <: date.today().toStartofWeek().addDays(14) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek().addDays(7) && WA.due_date__c <  date.today().toStartofWeek().addDays(14)){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+else if(selectListValueTwo.equals('THISMONTH')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND Due_Date__c >=:  date.today().toStartofMonth() AND Due_Date__c <: date.today().toStartofMonth().addMonths(1) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth() && WA.due_date__c < date.today().toStartofMonth().addMonths(1)){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+     }
+else if(selectListValueTwo.equals('NEXTMONTH')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND Due_Date__c >=:  date.today().toStartofMonth().addMonths(1) AND Due_Date__c <: date.today().toStartofMonth().addMonths(2) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth().addMonths(1) && WA.due_date__c < date.today().toStartofMonth().addMonths(2)){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList; 
+     }
+else if(selectListValueTwo.equals('PAST')){
+
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r 
+                          WHERE PersonalItem__c =: true AND Due_Date__c <: date.today()
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){ 
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c < date.today()){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;            
+}
+}
+
+if(itemTaskSelection.equals('ACTIVITY') && selectListValue.equals('HIGH')){
+
+       if(selectListValueTwo.equals('NONE')){
+
+        }
+
+      else if(selectListValueTwo.equals('TODAY')){
+             set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:true AND Due_Date__c =: date.today()
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: true AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       System.debug(' I get here 1');
+           
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.High_Priority__c == true){
+                    System.debug(' I get here 2');
+           
+                      x = true;
+                   }
+              }
+           if(x == true){
+           System.debug(' I get here 3');
+           
+           tempList.add(WI);
+           }
+        }
+       System.debug(' I get here 4');           
+       currentItems = tempList;
+     }
+
+     else if(selectListValueTwo.equals('TOMORROW')){
+
+    set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:true AND Due_Date__c =: date.today().addDays(1)
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: true AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today().addDays(1) && WA.High_Priority__c == true){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+
+    else if(selectListValueTwo.equals('THISWEEK')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:true AND Due_Date__c >=: date.today().toStartofWeek() AND Due_Date__c <: date.today().toStartofWeek().addDays(7) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek() && WA.due_date__c < date.today().toStartofWeek().addDays(7) && WA.High_Priority__c == true){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+   else if(selectListValueTwo.equals('NEXTWEEK')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:true AND Due_Date__c >=:  date.today().toStartofWeek().addDays(7) AND Due_Date__c <: date.today().toStartofWeek().addDays(14) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek().addDays(7) && WA.due_date__c <  date.today().toStartofWeek().addDays(14) && WA.High_Priority__c == true){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+else if(selectListValueTwo.equals('THISMONTH')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:true AND Due_Date__c >=:  date.today().toStartofMonth() AND Due_Date__c <: date.today().toStartofMonth().addMonths(1) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth() && WA.due_date__c < date.today().toStartofMonth().addMonths(1) && WA.High_Priority__c == true){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+     }
+else if(selectListValueTwo.equals('NEXTMONTH')){
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:true AND Due_Date__c >=:  date.today().toStartofMonth().addMonths(1) AND Due_Date__c <: date.today().toStartofMonth().addMonths(2) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth().addMonths(1) && WA.due_date__c < date.today().toStartofMonth().addMonths(2) && WA.High_Priority__c == true){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList; 
+     }
+else if(selectListValueTwo.equals('PAST')){
+
+
+       set1 =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r 
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:true AND Due_Date__c <: date.today()
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){ 
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r ){
+                   if(WA.due_date__c < date.today() && WA.High_Priority__c == true){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;            
+}
+}
+
+if(itemTaskSelection.equals('ACTIVITY') && selectListValue.equals('NOPRIORITY')){
+
+       if(selectListValueTwo.equals('NONE')){
+
+        }
+
+      else if(selectListValueTwo.equals('TODAY')){
+             set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:false AND Due_Date__c =: date.today()
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: true AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+           
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.High_Priority__c == false){           
+                      x = true;
+                   }
+              }
+           if(x == true){           
+           tempList.add(WI);
+           }
+        }         
+       currentItems = tempList;
+     }
+     else if(selectListValueTwo.equals('TOMORROW')){
+
+    set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:false AND Due_Date__c =: date.today().addDays(1)
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c =: true AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c == date.today().addDays(1) && WA.High_Priority__c == false){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+
+    else if(selectListValueTwo.equals('THISWEEK')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:false AND Due_Date__c >=: date.today().toStartofWeek() AND Due_Date__c <: date.today().toStartofWeek().addDays(7) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek() && WA.due_date__c < date.today().toStartofWeek().addDays(7) && WA.High_Priority__c == false){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+   else if(selectListValueTwo.equals('NEXTWEEK')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:false AND Due_Date__c >=:  date.today().toStartofWeek().addDays(7) AND Due_Date__c <: date.today().toStartofWeek().addDays(14) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofWeek().addDays(7) && WA.due_date__c <  date.today().toStartofWeek().addDays(14) && WA.High_Priority__c == false){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+
+     }
+else if(selectListValueTwo.equals('THISMONTH')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:false AND Due_Date__c >=:  date.today().toStartofMonth() AND Due_Date__c <: date.today().toStartofMonth().addMonths(1) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth() && WA.due_date__c < date.today().toStartofMonth().addMonths(1) && WA.High_Priority__c == false){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;
+     }
+else if(selectListValueTwo.equals('NEXTMONTH')){
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name 
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:false AND Due_Date__c >=:  date.today().toStartofMonth().addMonths(1) AND Due_Date__c <: date.today().toStartofMonth().addMonths(2) 
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r){
+                   if(WA.due_date__c >= date.today().toStartofMonth().addMonths(1) && WA.due_date__c < date.today().toStartofMonth().addMonths(2) && WA.High_Priority__c == false){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList; 
+     }
+else if(selectListValueTwo.equals('PAST')){
+
+
+       set1 =   [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                          FROM Whiteboard_Item_Activities__r 
+                          WHERE PersonalItem__c =: true AND High_Priority__c =:false AND Due_Date__c <: date.today()
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c 
+                      WHERE PersonalItem__c =: true AND Completed__c =: false 
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+       
+         for(Whiteboard_Item__c WI: set1){ 
+              Boolean x = false;
+              for(Whiteboard_Item_Activity__c WA: WI.whiteboard_item_activities__r ){
+                   if(WA.due_date__c < date.today() && WA.High_Priority__c == false){
+                      x = true;
+                   }
+              }
+           if(x == true){
+           tempList.add(WI);
+           }
+        }
+       currentItems = tempList;            
+}
+}
+
+}
+//////end of sidebar methods////////////////////////////////    
+ 
     
     public List<SelectOption> getUserList() {
         AllUsers = [Select Name, LastName, Id, FirstName, Username, Email From User];            
@@ -294,8 +3432,8 @@ public with sharing class WhiteboardController {
     
     public void getCompanyItems() {
         //currentWhiteboard = 'Company Whiteboard';
-        currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+        currentItems =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
                           FROM Whiteboard_Item_Activities__r
                           WHERE PersonalItem__c =: false 
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
@@ -306,6 +3444,10 @@ public with sharing class WhiteboardController {
                       LIMIT 100];
         indicator = true;
         setBoardTitle(indicator);
+
+        itemTaskSelection = 'None';
+        selectListValue = 'None';
+        selectListValueTwo = 'NONE';
         
         getCompanyCompleted();
     }              
@@ -338,6 +3480,10 @@ public with sharing class WhiteboardController {
         indicator = false;
         setBoardTitle(indicator);
         getPersonalCompleted();
+
+       itemTaskSelection = 'None';
+       selectListValue = 'None';
+       selectListValueTwo = 'NONE';
     }
     
     public void getPersonalCompleted() {  

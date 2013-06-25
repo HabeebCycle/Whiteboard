@@ -78,11 +78,38 @@
         </script>
     </apex:outputPanel>
 
-    <div class="container-fluid">
+<div class="container-fluid">
         <div class="row-fluid">
             <div class="span2" style="border:right">
-                <p>Sidebar</p>    
-            </div>
+                <apex:panelGroup id="sidebar" style="margin-top=10px" >
+                    <div style="position:relative;top:5px;">
+                     <div class="heading">
+                           <p>Search </p>
+                    </div>
+                    <apex:form >                            
+                        <apex:inputText value="{!searchValue}" id="theSearchInput" title="Search the Whiteboard" style="width: 117px">
+                            <apex:actionsupport event="onkeydown" action="{!searchItems}" rerender="wholePage"/>
+                            <apex:actionsupport event="onkeyup" action="{!searchItems}" rerender="wholePage"/> 
+                        </apex:inputtext>
+                       <div class="heading">
+                           <p>Filter By </p>
+                    </div>
+                        <apex:selectList value="{!itemTaskSelection}"  size="1" multiselect="false" style="width: 126px">
+                           <apex:actionsupport event="onchange" action="{!ItemTaskSelected}" rerender="wholePage"/>
+                           <apex:selectOptions value="{!ItemTask}"></apex:selectOptions>
+                        </apex:selectList>
+                        <apex:selectList value="{!selectListValue}"  size="1" multiselect="false" style="width: 126px" title="Sort by">
+                           <apex:actionsupport event="onchange" action="{!changeOrderBy}" rerender="wholePage"/>
+                           <apex:selectOptions value="{!items}"></apex:selectOptions>
+                        </apex:selectList>
+                        <apex:selectList value="{!selectListValueTwo}"  size="1" multiselect="false" style="width: 126px" title="Filter by"  >
+                           <apex:actionsupport event="onchange" action="{!changeOrderByTwo}" rerender="wholePage"/>
+                           <apex:selectOptions value="{!itemsTwo}"></apex:selectOptions>
+                        </apex:selectList>
+                    </apex:form>  
+                    </div>
+                </apex:panelGroup> 
+            </div>  
             <apex:outputPanel id="wholePage">
             <div class="span10" id="mainSection">
                 <div class="row">
@@ -108,7 +135,7 @@
                             </div>
                             <div class="modal-body">
                                 <span class="modalLabel">Name</span><apex:inputField label="Name" value="{!Item.Name}" styleClass="modalInput modalActInput"/>
-                                <br/>
+                                <p><span class="modalLabel">Due Date</span><apex:inputField label="DueDate" value="{!Item.Item_Due_Date__c}" styleClass="modalInput modalActInput"/></p>
                                 <span class="modalLabel">Assign To:</span>                                                                         
                                       <apex:selectList id="aUser" value="{!assignedUser}" size="1" multiselect="false" >
                                           <apex:selectOptions value="{!UserList}" ></apex:selectOptions> 
