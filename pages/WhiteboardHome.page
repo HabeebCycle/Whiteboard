@@ -93,20 +93,25 @@
                         </apex:inputtext>
                        <div class="heading">
                            <p>Filter By </p>
-                    </div>
-                        <apex:selectList value="{!itemTaskSelection}"  size="1" multiselect="false" style="width: 126px">
-                           <apex:actionsupport event="onchange" action="{!ItemTaskSelected}" rerender="wholePage"/>
+                       </div>
+                        <apex:selectList value="{!itemOrActivity}"  size="1" multiselect="false" style="width: 126px">
+                           <apex:actionsupport event="onchange" action="{!filter}" rerender="wholePage"/>
                            <apex:selectOptions value="{!ItemTask}"></apex:selectOptions>
                         </apex:selectList>
-                        <apex:selectList value="{!selectListValue}"  size="1" multiselect="false" style="width: 126px" title="Sort by">
-                           <apex:actionsupport event="onchange" action="{!changeOrderBy}" rerender="wholePage"/>
+                        <apex:selectList value="{!Priority}"  size="1" multiselect="false" style="width: 126px" title="Sort by">
+                           <apex:actionsupport event="onchange" action="{!filter}" rerender="wholePage"/>
                            <apex:selectOptions value="{!items}"></apex:selectOptions>
                         </apex:selectList>
-                        <apex:selectList value="{!selectListValueTwo}"  size="1" multiselect="false" style="width: 126px" title="Filter by"  >
-                           <apex:actionsupport event="onchange" action="{!changeOrderByTwo}" rerender="wholePage"/>
+                        <apex:selectList value="{!TimeFrame}"  size="1" multiselect="false" style="width: 126px" title="Filter by"  >
+                           <apex:actionsupport event="onchange" action="{!filter}" rerender="wholePage"/>
                            <apex:selectOptions value="{!itemsTwo}"></apex:selectOptions>
                         </apex:selectList>
+                        <p></p>
                     </apex:form>  
+                    <apex:form >
+                           <apex:inputField value="{!proxyObject.closeDate}" id="theDateInput" style="width: 65px">
+                           </apex:inputfield><apex:commandButton styleClass="btn btn-primary" action="{!dateSearch}" value="Go!"/>
+                      </apex:form>  
                     </div>
                 </apex:panelGroup> 
             </div>  
