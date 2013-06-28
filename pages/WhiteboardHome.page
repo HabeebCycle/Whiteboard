@@ -159,16 +159,7 @@
                 <br/>
                 <div class="heading">
                     <p>Current Items</p>
-                </div>
-                
-                <apex:outputPanel id="mattTestOutput" >
-                	<apex:outputText value="{!mattTest}"></apex:outputText>
-                </apex:outputPanel>
-                <p></p>
-                <apex:outputPanel id="mattTestOutput2" >
-                	<apex:outputText value="{!mattTest2}"></apex:outputText>
-                </apex:outputPanel>
-                
+                </div>                
                 
                 <apex:outputPanel id="pageContent">
                     <div class="row">
