@@ -31,6 +31,10 @@ public with sharing class WhiteboardController {
    public Set<Whiteboard_Item__c> results { get; set; }		// holds final filter results
    public List<Whiteboard_Item__c> listResults {get; set; }     //holds initial filter results as a list
 
+    public String mattTest {get; set;}
+    public String mattTest2 {get; set;}
+    public Id ItemId {get; set;}
+
     // ************************ SETTING UP CONTROLLER AND POPULATING LISTS ****************************************************************
 
     public WhiteboardController() {
@@ -46,6 +50,9 @@ public with sharing class WhiteboardController {
         
         AllUsers = new List<User>();
         assignedUser = null;
+        
+        mattTest = 'Text to test edit button reRender';
+        mattTest2 = 'Test multiple ids reRendered at same time';
 
     }
     
@@ -615,8 +622,12 @@ public void filterTimeFrame() {
         return;
     }
     
+
+    
     public PageReference editItem() {
-    	List<Whiteboard_Item__c> edit = [SELECT Id, Name, High_Priority__c, Item_Due_Date__c, assignedTo__r.Name from Whiteboard_Item__c where Id =: item.Id LIMIT 1];
+    	//List<Whiteboard_Item__c> edit = [SELECT Id, Name, High_Priority__c, Item_Due_Date__c, assignedTo__r.Name from Whiteboard_Item__c where Id =: item.Id LIMIT 1];
+       // List<Whiteboard_Item__c> edit = [SELECT Id, Name, High_Priority__c, Item_Due_Date__c, assignedTo__r.Name from Whiteboard_Item__c where Id =: ItemId LIMIT 1];
+        List<Whiteboard_Item__c> edit = [SELECT Id, Name, High_Priority__c, Item_Due_Date__c, assignedTo__r.Name from Whiteboard_Item__c where Id = :ApexPages.currentpage().getparameters().get('ItemId')];
         if (edit.size() > 0) {
             Item.Name = edit.get(0).Name;
             Item.High_Priority__c = edit.get(0).High_Priority__c;
@@ -624,6 +635,10 @@ public void filterTimeFrame() {
            // Item.assignedTo__r.Name = edit.get(0).assignedTo__r.Name;
             
         }
+        mattTest = 'Edit button reRender Works!';
+    	mattTest2 = 'multiple ids reRendered at same time';
+        
+        mattTest = ItemId;
         return null;
     }
     
