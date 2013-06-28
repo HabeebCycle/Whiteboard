@@ -144,7 +144,8 @@
                                 <h3 id="myModalLabel">New Item</h3>
                             </div>
                             <div class="modal-body">
-                                <span class="modalLabel">Name:</span><apex:inputField label="Name" value="{!Item.Name}" styleClass="modalInput modalActInput modalItemName"/>
+                                <!-- <span class="modalLabel">Edit Test:</span><apex:outputText label="Edit reRender" value="{!mattTest}" styleClass="modalInput modalActInput modalItemName"/><p></p> -->
+                                <span class="modalLabel">Name:</span><apex:inputField label="Name" value="{!Item.Name}" styleClass="modalInput modalActInput modalItemName"/>                                                                
                                 <p><span class="modalLabel">Due Date:</span><apex:inputField label="DueDate" value="{!Item.Item_Due_Date__c}" styleClass="modalInput modalActInput modalItemDate"/></p>
                                 <span class="modalLabel">Assign To:</span>                                                                         
                                       <apex:selectList id="aUser" value="{!assignedUser}" size="1" multiselect="false" styleClass="modalItemAssign">
@@ -153,7 +154,7 @@
                                 <span class="modalLabel">High Priority:</span><apex:inputCheckbox label="High Priority" value="{!Item.High_Priority__c}" styleClass="modalInput modalItemAssign"/>
                             </div>
                             <div class="modal-footer">
-                                <apex:commandButton styleClass="btn btn-primary" action="{!save}" value="Save"/>
+                                <apex:commandButton styleClass="btn btn-primary" action="{!save}" value="Save" reRender="wholePage"/>
                                 <apex:commandButton styleClass="btn" value="Cancel"/>
                             </div>
                         </apex:form>
@@ -163,7 +164,8 @@
                 <br/>
                 <div class="heading">
                     <p>Current Items</p>
-                </div>
+                </div>                
+                
                 <apex:outputPanel id="pageContent">
                     <div class="row">
                         <div class="span12">
