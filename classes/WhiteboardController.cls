@@ -3432,8 +3432,8 @@ else if(selectListValueTwo.equals('PAST')){
     
     public void getCompanyItems() {
         //currentWhiteboard = 'Company Whiteboard';
-        currentItems =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
-                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+        currentItems =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE PersonalItem__c =: false 
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
@@ -3453,8 +3453,8 @@ else if(selectListValueTwo.equals('PAST')){
     }              
 
     public void getCompanyCompleted() {  
-        completedItems = [SELECT Name, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c, OwnerId, assignedTo__c, assignedTo__r.Name,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name
+        completedItems = [SELECT Name, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c, OwnerId, assignedTo__c, assignedTo__r.Name, Completed_Date__c,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE PersonalItem__c =: false 
                           ORDER BY CreatedDate 
@@ -3467,8 +3467,8 @@ else if(selectListValueTwo.equals('PAST')){
     
     public void getPersonalItems() {
         currentWhiteboard = 'Personal Whiteboard';
-        currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name
+        currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Completed_Date__c, Item_Due_Date__c, Past_Due__c,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
@@ -3488,8 +3488,8 @@ else if(selectListValueTwo.equals('PAST')){
     
     public void getPersonalCompleted() {  
                       
-        completedItems = [SELECT Name, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c, OwnerId, assignedTo__c, assignedTo__r.Name,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name
+        completedItems = [SELECT Name, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c, OwnerId, assignedTo__c, assignedTo__r.Name, Completed_Date__c,
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
                           ORDER BY CreatedDate 
@@ -3508,6 +3508,7 @@ else if(selectListValueTwo.equals('PAST')){
         List<Whiteboard_Item_Activity__c> completed = [SELECT Id, Name, Completed__c, CompletedBy__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')];            
         for (Whiteboard_Item_Activity__c act : completed) {
             act.Completed__c = true;   
+            act.Completed_Date__c = date.today();
             act.Completedby__c = UserInfo.getUserId();
         }
         
@@ -3540,13 +3541,8 @@ else if(selectListValueTwo.equals('PAST')){
         for(Whiteboard_Item__c item : itemsToComplete) {
             item.Completed__c = true;
             item.CompletedBy__c = userid;
-            
-            for (Whiteboard_Item_Activity__c act : item.Whiteboard_Item_Activities__r) {
-                if (act.Completed__c == false) {
-                    act.CompletedBy__c = userid;
-                    update act;
-                }
-            }
+            item.Completed_Date__c = date.today();
+
         }
         
         update itemsToComplete;
@@ -3574,11 +3570,9 @@ else if(selectListValueTwo.equals('PAST')){
         for(Whiteboard_Item__c item : itemsToUnComplete) {
             item.Completed__c = false;
             item.Completedby__c = null;
+            item.completed_Date__c = null;
             
-            for (Whiteboard_Item_Activity__c act : item.Whiteboard_Item_Activities__r) {
-                if (act.Completed__c == false)
-                    act.CompletedBy__c = null;
-            }
+
             update item.Whiteboard_Item_Activities__r;
         }
                     
@@ -3598,6 +3592,7 @@ else if(selectListValueTwo.equals('PAST')){
         for (Whiteboard_Item_Activity__c act : completed) {
             act.Completed__c = false;  
             act.CompletedBy__c = null;
+            act.Completed_Date__c = null;
         }
         
         try {
@@ -3729,6 +3724,17 @@ else if(selectListValueTwo.equals('PAST')){
         return;
     }
     
+    public PageReference editItem() {
+    	List<Whiteboard_Item__c> edit = [SELECT Id, Name, High_Priority__c, Item_Due_Date__c, assignedTo__r.Name from Whiteboard_Item__c where Id =: item.Id LIMIT 1];
+        if (edit.size() > 0) {
+            Item.Name = edit.get(0).Name;
+            Item.High_Priority__c = edit.get(0).High_Priority__c;
+            Item.Item_Due_Date__c = edit.get(0).Item_Due_Date__c;
+           // Item.assignedTo__r.Name = edit.get(0).assignedTo__r.Name;
+            
+        }
+        return null;
+    }
     
     
     // ********************************************************************************************************************************
@@ -3867,7 +3873,7 @@ else if(selectListValueTwo.equals('PAST')){
         }
         return null;
     }
-    
+
     // ********************************************************************************************************************************
     
     public void setItem(Whiteboard_Item__c newItem) {

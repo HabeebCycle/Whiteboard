@@ -35,7 +35,6 @@
     <deploymentStatus>Deployed</deploymentStatus>
     <description>Specified Activities are a sub-item for the Whiteboard Items. They have a brief description along with their due date.</description>
     <enableActivities>false</enableActivities>
-    <enableEnhancedLookup>false</enableEnhancedLookup>
     <enableFeeds>false</enableFeeds>
     <enableHistory>false</enableHistory>
     <enableReports>false</enableReports>
@@ -48,6 +47,13 @@
         <relationshipName>Whiteboard_Item_Activities</relationshipName>
         <required>false</required>
         <type>Lookup</type>
+    </fields>
+    <fields>
+        <fullName>Completed_Date__c</fullName>
+        <externalId>false</externalId>
+        <label>Completed Date</label>
+        <required>false</required>
+        <type>Date</type>
     </fields>
     <fields>
         <fullName>Completed__c</fullName>
@@ -75,6 +81,14 @@
         <defaultValue>false</defaultValue>
         <externalId>false</externalId>
         <label>High Priority</label>
+        <type>Checkbox</type>
+    </fields>
+    <fields>
+        <fullName>Past_Due__c</fullName>
+        <externalId>false</externalId>
+        <formula>TODAY() &gt; Due_Date__c</formula>
+        <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+        <label>Past Due</label>
         <type>Checkbox</type>
     </fields>
     <fields>
