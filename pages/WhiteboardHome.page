@@ -149,7 +149,7 @@
                                 <span class="modalLabel">High Priority:</span><apex:inputCheckbox label="High Priority" value="{!Item.High_Priority__c}" styleClass="modalInput modalItemAssign"/>
                             </div>
                             <div class="modal-footer">
-                                <apex:commandButton styleClass="btn btn-primary" action="{!save}" value="Save"/>
+                                <apex:commandButton styleClass="btn btn-primary" action="{!save}" value="Save" reRender="wholePage"/>
                                 <apex:commandButton styleClass="btn" value="Cancel"/>
                             </div>
                         </apex:form>
@@ -173,7 +173,7 @@
                                                     <apex:param name="ItemId" value="{!item.Id}"/>
                                                 </apex:commandButton>
                                                 <button href="#myModalAct" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="itemId='{!item.Id}'" rel="tooltip" data-placement="top" title="Click to add an Activity">✚</button>
-                                                <apex:commandButton action="{!editItem}" alt="tooltip" title="Click to edit" value="✎" id="edit" reRender="mattTestOutput, mattTestOutput2, itemFormC" styleClass="close">                                                                                                                                                        						                                                    
+                                                <apex:commandButton action="{!editItem}" alt="tooltip" title="Click to edit" value="✎" id="edit" reRender="itemFormC" styleClass="close">                                                                                                                                                        						                                                    
                                                     <apex:param name="ItemId" value="{!item.Id}"/>
                                                 </apex:commandButton>
                                                 <apex:commandLink rel="tooltip" title="Click to toggle priority" styleClass="priority" rendered="{!IF(item.High_Priority__c == true, true, false)}"  action="{!unsetPriority}" rerender="wholePage">
@@ -233,8 +233,8 @@
                                                             <apex:commandButton action="{!deleteAct}" value="✖" id="delete" reRender="curRow" styleClass="{!IF(act.Completed__c == true, 'btn close restoreButton trashButton', 'close')}" onclick="if (!confirm('Are you sure you want to delete this activity forever?')) {return;};">
                                                                 <apex:param name="ActId" value="{!act.Id}"/>
                                                             </apex:commandButton>
-                                                            <apex:commandButton action="{!editItem}" value="✎" id="edit" reRender="curRow" styleClass="close" rendered="{!IF(act.Completed__c == true, false, true)}">
-                                                                <apex:param name="ItemId" value="{!item.Id}"/>
+                                                            <apex:commandButton action="{!editActivity}" value="✎" id="edit" reRender="curRow" styleClass="close" rendered="{!IF(act.Completed__c == true, false, true)}">
+                                                                <apex:param name="activityId" value="{!act.Id}"/>
                                                             </apex:commandButton>
                                                             <apex:commandLink styleClass="priority" rendered="{!IF(AND(act.High_Priority__c == true, act.Completed__c == false), true, false)}"  action="{!unsetActPriority}" rerender="curRow">
                                                                 <apex:image url="{!URLFOR($Resource.bootstrap, '/bootstrap/img/priority.png')}" width="25"/>

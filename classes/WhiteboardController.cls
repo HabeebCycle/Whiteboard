@@ -30,10 +30,9 @@ public with sharing class WhiteboardController {
 
    public Set<Whiteboard_Item__c> results { get; set; }		// holds final filter results
    public List<Whiteboard_Item__c> listResults {get; set; }     //holds initial filter results as a list
+    
+    public Boolean editIndicator {get; set;}
 
-    public String mattTest {get; set;}
-    public String mattTest2 {get; set;}
-    public Id ItemId {get; set;}
 
     // ************************ SETTING UP CONTROLLER AND POPULATING LISTS ****************************************************************
 
@@ -46,14 +45,11 @@ public with sharing class WhiteboardController {
         activity = new Whiteboard_Item_Activity__c();
         getCompanyItems();
         indicator = true; 
+        editIndicator = false;
         setBoardTitle(indicator);
         
         AllUsers = new List<User>();
-        assignedUser = null;
-        
-        mattTest = 'Text to test edit button reRender';
-        mattTest2 = 'Test multiple ids reRendered at same time';
-
+        assignedUser = null;        
     }
     
 ///////Side bar methods//////////       
@@ -298,13 +294,23 @@ public void filterTimeFrame() {
  
     
     public List<SelectOption> getUserList() {
-        AllUsers = [Select Name, LastName, Id, FirstName, Username, Email From User];            
+        AllUsers = [Select Name, LastName, Id, FirstName, Username, Email From User];   
+        
         List<SelectOption> UserList = new List<SelectOption>();
+        
+        if(Item.assignedTo__c != null) {
+            String userName = [SELECT Name FROM User WHERE Id =: Item.assignedTo__c LIMIT 1].Name;
+        	UserList.add(new SelectOption(Item.assignedTo__c, userName));
+        }
+        
         UserList.add(new SelectOption('', 'None'));
         
         for(User temp : AllUsers)
         {
-            UserList.add(new SelectOption(temp.Id, temp.Name));
+            //Only add the name if it is not the same Id as the current User
+            if (Item.assignedTo__r.name != '' && temp.Id != Item.assignedTo__c) {
+            	UserList.add(new SelectOption(temp.Id, temp.Name));
+            }
         }
         
         return UserList;
@@ -625,20 +631,28 @@ public void filterTimeFrame() {
 
     
     public PageReference editItem() {
-    	//List<Whiteboard_Item__c> edit = [SELECT Id, Name, High_Priority__c, Item_Due_Date__c, assignedTo__r.Name from Whiteboard_Item__c where Id =: item.Id LIMIT 1];
-       // List<Whiteboard_Item__c> edit = [SELECT Id, Name, High_Priority__c, Item_Due_Date__c, assignedTo__r.Name from Whiteboard_Item__c where Id =: ItemId LIMIT 1];
-        List<Whiteboard_Item__c> edit = [SELECT Id, Name, High_Priority__c, Item_Due_Date__c, assignedTo__r.Name from Whiteboard_Item__c where Id = :ApexPages.currentpage().getparameters().get('ItemId')];
-        if (edit.size() > 0) {
-            Item.Name = edit.get(0).Name;
-            Item.High_Priority__c = edit.get(0).High_Priority__c;
-            Item.Item_Due_Date__c = edit.get(0).Item_Due_Date__c;
-           // Item.assignedTo__r.Name = edit.get(0).assignedTo__r.Name;
-            
-        }
-        mattTest = 'Edit button reRender Works!';
-    	mattTest2 = 'multiple ids reRendered at same time';
+		//Set edit boolean to true
+        editIndicator = true;
         
-        mattTest = ItemId;
+        List<Whiteboard_Item__c> Items = [SELECT Id, Name, High_Priority__c, Item_Due_Date__c, assignedTo__r.Name from Whiteboard_Item__c where Id = :ApexPages.currentpage().getparameters().get('ItemId')];
+        if (Items.size() > 0) {
+            Item = Items.get(0);
+        }
+        getUserList();                  
+
+        return null;
+    }
+    
+    public PageReference editActivity() {
+		//Set edit boolean to true
+        editIndicator = true;
+        
+        List<Whiteboard_Item_Activity__c> Activities = [SELECT Id, Name, High_Priority__c, Due_Date__c, actAssignedTo__r.Name from Whiteboard_Item_Activity__c where Id = :ApexPages.currentpage().getparameters().get('activityId')];
+        if (Activities.size() > 0) {
+            activity = Activities.get(0);
+        }
+        getUserList();                  
+
         return null;
     }
     
@@ -705,15 +719,24 @@ public void filterTimeFrame() {
                 }
             }
             System.debug(Item);
-            insert Item;
-            Item = new Whiteboard_Item__c();
             
+            //If edit boolean is true, update, otherwise insert
+            if(editIndicator == true)
+            {update Item;}
+            else
+            {insert Item;} 
+            editIndicator = false;
+            
+            Item = new Whiteboard_Item__c();
+            getUserList();
 
             getCompanyItems();         
         }
         catch(Exception ex) {
             ApexPages.addMessages(ex);
         }
+        
+        
         return null;
     }
     
@@ -747,8 +770,17 @@ public void filterTimeFrame() {
         try
         {
             Item.PersonalItem__c = true;
-            insert Item;
+            
+            //If edit boolean is true, update, otherwise insert
+            if(editIndicator == true)
+            {update Item;            	
+            }
+            else
+            {insert Item;}
+            editIndicator = false;
+            
             Item = new Whiteboard_Item__c();
+            getUserList();
           
             getPersonalItems();         
         }
