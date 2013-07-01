@@ -233,7 +233,7 @@
                                                             <apex:commandButton action="{!deleteAct}" value="✖" id="delete" reRender="curRow" styleClass="{!IF(act.Completed__c == true, 'btn close restoreButton trashButton', 'close')}" onclick="if (!confirm('Are you sure you want to delete this activity forever?')) {return;};">
                                                                 <apex:param name="ActId" value="{!act.Id}"/>
                                                             </apex:commandButton>
-                                                            <apex:commandButton action="{!editActivity}" value="✎" id="edit" reRender="curRow" styleClass="close" rendered="{!IF(act.Completed__c == true, false, true)}">
+                                                            <apex:commandButton action="{!editActivity}" value="✎" id="edit" reRender="curRow, itemFormA" styleClass="close" rendered="{!IF(act.Completed__c == true, false, true)}">
                                                                 <apex:param name="activityId" value="{!act.Id}"/>
                                                             </apex:commandButton>
                                                             <apex:commandLink styleClass="priority" rendered="{!IF(AND(act.High_Priority__c == true, act.Completed__c == false), true, false)}"  action="{!unsetActPriority}" rerender="curRow">

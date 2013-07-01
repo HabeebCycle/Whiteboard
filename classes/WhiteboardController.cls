@@ -32,6 +32,7 @@ public with sharing class WhiteboardController {
    public List<Whiteboard_Item__c> listResults {get; set; }     //holds initial filter results as a list
     
     public Boolean editIndicator {get; set;}
+    public Boolean editActivityIndicator {get; set;}
 
 
     // ************************ SETTING UP CONTROLLER AND POPULATING LISTS ****************************************************************
@@ -46,6 +47,7 @@ public with sharing class WhiteboardController {
         getCompanyItems();
         indicator = true; 
         editIndicator = false;
+        editActivityIndicator = false;
         setBoardTitle(indicator);
         
         AllUsers = new List<User>();
@@ -645,9 +647,9 @@ public void filterTimeFrame() {
     
     public PageReference editActivity() {
 		//Set edit boolean to true
-        editIndicator = true;
+        editActivityIndicator = true;
         
-        List<Whiteboard_Item_Activity__c> Activities = [SELECT Id, Name, High_Priority__c, Due_Date__c, actAssignedTo__r.Name from Whiteboard_Item_Activity__c where Id = :ApexPages.currentpage().getparameters().get('activityId')];
+        List<Whiteboard_Item_Activity__c> Activities = [SELECT Id, Name, High_Priority__c, Description__c, Due_Date__c, actAssignedTo__r.Name from Whiteboard_Item_Activity__c where Id = :ApexPages.currentpage().getparameters().get('activityId')];
         if (Activities.size() > 0) {
             activity = Activities.get(0);
         }
@@ -749,14 +751,27 @@ public void filterTimeFrame() {
     }
     
     public PageReference saveActCompany() {
-        activity.Whiteboard_Item__c = WhiteboardId;
+        if(editActivityIndicator == false) {
+        	activity.Whiteboard_Item__c = WhiteboardId;
+        }
+        
         show = 'Id: ' + activity.Whiteboard_Item__c + ', Name: ' + activity.Name + ', Description: ' + activity.Description__c;
         if (activity.Name == '' || activity.Name == null) {
             return null;   
         }
         try {
-            insert activity;
+            //If edit boolean is true, update, otherwise insert
+            if(editActivityIndicator == true)
+            {update activity;}
+            else
+            {insert activity;} 
+            editActivityIndicator = false;
+            //insert activity;
+            
             activity = new Whiteboard_Item_Activity__c();
+            
+            getUserList();
+            
             getCompanyItems();
         }                
         catch(Exception ex) {
@@ -792,8 +807,10 @@ public void filterTimeFrame() {
     }
     
     public PageReference saveActPersonal() {
+        if(editActivityIndicator == false) {
+        	activity.Whiteboard_Item__c = WhiteboardId;
+        }
         
-        activity.Whiteboard_Item__c = WhiteboardId;
         show = 'Id: ' + activity.Whiteboard_Item__c + ', Name: ' + activity.Name + ', Description: ' + activity.Description__c;
         if (activity.Name == '' || activity.Name == null) {
             return null;   
@@ -801,8 +818,18 @@ public void filterTimeFrame() {
         try {
             activity.PersonalItem__c = true;
         
-            insert activity;
+            //If edit boolean is true, update, otherwise insert
+            if(editActivityIndicator == true)
+            {update activity;}
+            else
+            {insert activity;} 
+            editActivityIndicator = false;
+            
+            //insert activity;
             activity = new Whiteboard_Item_Activity__c();
+            
+            getUserList();
+            
             //getCompanyItems();
             getPersonalItems();
         }                
