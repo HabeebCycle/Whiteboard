@@ -65,7 +65,8 @@
 
         }
     </script>
-    
+
+
     <apex:outputPanel id="jquery">
         <script type="text/javascript">
             var j$ = jQuery.noConflict();
@@ -77,6 +78,10 @@
             });
         </script>
     </apex:outputPanel>
+    <apex:form >
+        <apex:actionFunction name="editItem" action="{!editItem}" rerender="itemFormC"/>
+        <apex:actionFunction name="editActivity" action="{!editItem}" rerender="itemFormA"/>
+    </apex:form>
 
 <div class="container-fluid">
         <div class="row-fluid">
@@ -173,9 +178,7 @@
                                                     <apex:param name="ItemId" value="{!item.Id}"/>
                                                 </apex:commandButton>
                                                 <button href="#myModalAct" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="itemId='{!item.Id}'" rel="tooltip" data-placement="top" title="Click to add an Activity">✚</button>
-                                                <apex:commandButton action="{!editItem}" alt="tooltip" title="Click to edit" value="✎" id="edit" reRender="itemFormC" styleClass="close">                                                                                                                                                        						                                                    
-                                                    <apex:param name="ItemId" value="{!item.Id}"/>
-                                                </apex:commandButton>
+                                                <button href="#myModal" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="editItem();" rel="tooltip" data-placement="top" title="Click to edit">✎</button>
                                                 <apex:commandLink rel="tooltip" title="Click to toggle priority" styleClass="priority" rendered="{!IF(item.High_Priority__c == true, true, false)}"  action="{!unsetPriority}" rerender="wholePage">
                                                     <apex:image url="{!URLFOR($Resource.bootstrap, '/bootstrap/img/priority.png')}" width="25"/>
                                                     <apex:param name="ItemId" value="{!item.Id}"/>
@@ -233,9 +236,7 @@
                                                             <apex:commandButton action="{!deleteAct}" value="✖" id="delete" reRender="curRow" styleClass="{!IF(act.Completed__c == true, 'btn close restoreButton trashButton', 'close')}" onclick="if (!confirm('Are you sure you want to delete this activity forever?')) {return;};">
                                                                 <apex:param name="ActId" value="{!act.Id}"/>
                                                             </apex:commandButton>
-                                                            <apex:commandButton action="{!editActivity}" value="✎" id="edit" reRender="curRow, itemFormA" styleClass="close" rendered="{!IF(act.Completed__c == true, false, true)}">
-                                                                <apex:param name="activityId" value="{!act.Id}"/>
-                                                            </apex:commandButton>
+                                                            <button href="#myModalAct" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="editItem();" data-placement="top">✎</button>
                                                             <apex:commandLink styleClass="priority" rendered="{!IF(AND(act.High_Priority__c == true, act.Completed__c == false), true, false)}"  action="{!unsetActPriority}" rerender="curRow">
                                                                 <apex:image url="{!URLFOR($Resource.bootstrap, '/bootstrap/img/priority.png')}" width="25"/>
                                                                 <apex:param name="ActId" value="{!act.Id}"/>
