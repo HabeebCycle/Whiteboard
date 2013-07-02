@@ -111,9 +111,9 @@
                         <p></p>
                     </apex:form>  
                     <apex:form >
-                        <apex:inputField value="{!proxyObject.closeDate}" id="theDateInput" style="width: 65px"></apex:inputField>
+                        <apex:inputField value="{!proxyObject.closeDate}" id="theDateInput" style="width: 65px" required="false"></apex:inputField><br/>
                         <apex:commandButton styleClass="btn btn-primary" action="{!dateSearch}" value="Go!"/>
-                        <apex:commandButton styleClass="btn" action="{!clearSearch}" value="Clear Search" reRender="sidebarPanel"/>
+                        <apex:commandButton styleClass="btn" action="{!clearSearch}" value="Clear Search" reRender="sidebarPanel, wholePage"/>
                      </apex:form>  
                     </div>
                 </apex:panelGroup> 
@@ -133,7 +133,7 @@
                 <div class="row">
                     <div class="span12">
                         <apex:sectionHeader title="{!currentWhiteboard}" id="title"/>
-                        <button href="#myModal" role="button" class="btn btn-primary" data-toggle="modal" data-backdrop="false">New Item</button>
+                        <button href="#myModal" role="button" class="btn btn-primary" data-toggle="modal" data-backdrop="false" onclick="newItem();">New Item</button>
                     </div>
                     <!-- NEW ITEM MODAL -->
                     <div id="myModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
@@ -176,7 +176,7 @@
                                                 <apex:commandButton alt="tooltip" title="Click to delete" action="{!deleteItem}" value="✖" id="delete" reRender="wholePage" styleClass="close" onclick="if (!confirm('Are you sure you want to delete this item forever?')) {return;};">
                                                     <apex:param name="ItemId" value="{!item.Id}"/>
                                                 </apex:commandButton>
-                                                <button href="#myModalAct" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="itemId='{!item.Id}'" rel="tooltip" data-placement="top" title="Click to add an Activity">✚</button>
+                                                <button href="#myModalAct" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="newActivity('{!item.Id}');" rel="tooltip" data-placement="top" title="Click to add an Activity">✚</button>
                                                 <button href="#myModal" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="editItem('{!item.Id}');" rel="tooltip" data-placement="top" title="Click to edit">✎</button>
                                                 <apex:commandLink rel="tooltip" title="Click to toggle priority" styleClass="priority" rendered="{!IF(item.High_Priority__c == true, true, false)}"  action="{!unsetPriority}" rerender="wholePage">
                                                     <apex:image url="{!URLFOR($Resource.bootstrap, '/bootstrap/img/priority.png')}" width="25"/>
@@ -353,7 +353,7 @@
                         <apex:inputHidden id="whiteboardId" value="{!whiteboardId}"/>
                         <div class="modal-header">
                             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
-                            <h3 id="myModalLabel">New Activity</h3>
+                            <h3 id="myModalLabel">{!IF(editIndicator == false, 'New Activity', 'Edit Activity')}</h3>
                         </div>
                         <div class="modal-body">
                             <span class="modalLabel">Name:</span><apex:inputField label="Name" value="{!activity.Name}" styleClass="modalActInput modalName"/><br/>
@@ -538,6 +538,11 @@
         </apex:actionFunction>
         <apex:actionFunction name="editActivity" action="{!editActivity}" rerender="itemFormA">
             <apex:param name="activityId" assignTo="{!activityId}" value="" />
+        </apex:actionFunction>
+        <apex:actionFunction name="newActivity" action="{!clearActivity}" reRender="itemFormA">
+            <apex:param name="itemid" assignTo="{!ItemId}" value="" />
+        </apex:actionFunction>
+        <apex:actionFunction name="newItem" action="{!clearItem}" reRender="itemFormC">
         </apex:actionFunction>
     </apex:form>
 

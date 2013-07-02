@@ -37,7 +37,6 @@ public with sharing class WhiteboardController {
    public List<Whiteboard_Item__c> listResults {get; set; }     //holds initial filter results as a list
     
     public Boolean editIndicator {get; set;}
-    public Boolean editActivityIndicator {get; set;}
 
 
     // ************************ SETTING UP CONTROLLER AND POPULATING LISTS ****************************************************************
@@ -53,7 +52,6 @@ public with sharing class WhiteboardController {
         getCompanyItems();
         indicator = true; 
         editIndicator = false;
-        editActivityIndicator = false;
         setBoardTitle(indicator);
         
         AllUsers = new List<User>();
@@ -368,7 +366,7 @@ public void filterTimeFrame() {
 }
     
     public PageReference clearSearch() {
-
+        
         itemOrActivity = 'NONE';
         itemActBool = null;
         Priority = 'NONE';
@@ -377,6 +375,7 @@ public void filterTimeFrame() {
         startDate = null;
         endDate = null;
         o.closeDate = null;
+        currentItems = getAllItems();
         
         return null;
     }
@@ -514,6 +513,27 @@ public void filterTimeFrame() {
     
     // ************************ DELETING ITEMS AND ACTIVITIES ****************************************************************
 
+    public PageReference clearActivity() {
+     	activity.Name = '';
+        activity.Description__c = '';
+        activity.High_Priority__c = false;
+        activity.Due_Date__c = null;
+        activity.actAssignedTo__c = null;
+        editIndicator = false;
+        
+        return null;
+    }
+    
+    public PageReference clearItem() {
+     	Item.Name = '';
+        Item.High_Priority__c = false;
+        Item.Item_Due_Date__c = null;
+        Item.assignedTo__c = null;
+        editIndicator = false;
+        
+        return null;
+    }
+    
     public void completeAct() {
         List<Whiteboard_Item_Activity__c> completed = [SELECT Id, Name, Completed__c, CompletedBy__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')];            
         for (Whiteboard_Item_Activity__c act : completed) {
@@ -751,10 +771,9 @@ public void filterTimeFrame() {
     
     public PageReference editActivity() {
 		//Set edit boolean to true
-        editActivityIndicator = true;
-
+        editIndicator = true;
+        
         List<Whiteboard_Item_Activity__c> Activities = [SELECT Id, Name, High_Priority__c, Due_Date__c, actAssignedTo__r.Name, Description__c from Whiteboard_Item_Activity__c where Id = :ApexPages.currentpage().getparameters().get('activityId')];
-
         if (Activities.size() > 0) {
             activity = Activities.get(0);
         }
@@ -770,8 +789,8 @@ public void filterTimeFrame() {
         assignedUser = null;
         return null;
     }
-
-
+    
+    
     // ********************************************************************************************************************************
     
     public Whiteboard_Item__c[] getWhiteboard() {
@@ -867,10 +886,9 @@ public void filterTimeFrame() {
     }
     
     public PageReference saveActCompany() {
-
         if (!editIndicator)
         	activity.Whiteboard_Item__c = WhiteboardId;
-
+        //show = 'Id: ' + activity.Whiteboard_Item__c + ', Name: ' + activity.Name + ', Description: ' + activity.Description__c;
         if (activity.Name == '' || activity.Name == null) {
             return null;   
         }
@@ -922,10 +940,8 @@ public void filterTimeFrame() {
     }
     
     public PageReference saveActPersonal() {
-        if(editActivityIndicator == false) {
-        	activity.Whiteboard_Item__c = WhiteboardId;
-        }
         
+        activity.Whiteboard_Item__c = WhiteboardId;
         show = 'Id: ' + activity.Whiteboard_Item__c + ', Name: ' + activity.Name + ', Description: ' + activity.Description__c;
         if (activity.Name == '' || activity.Name == null) {
             return null;   
@@ -933,18 +949,8 @@ public void filterTimeFrame() {
         try {
             activity.PersonalItem__c = true;
         
-            //If edit boolean is true, update, otherwise insert
-            if(editActivityIndicator == true)
-            {update activity;}
-            else
-            {insert activity;} 
-            editActivityIndicator = false;
-            
-            //insert activity;
+            insert activity;
             activity = new Whiteboard_Item_Activity__c();
-            
-            getUserList();
-            
             //getCompanyItems();
             getPersonalItems();
         }                
