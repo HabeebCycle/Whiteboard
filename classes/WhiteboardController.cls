@@ -2,6 +2,7 @@ public with sharing class WhiteboardController {
     
     public String WhiteboardId { get; set; }
     public String WhiteboardIdPersonal { get; set; }
+    public String ItemId { get; set; }
     
     public List<User> AllUsers { get; set;}
     
@@ -94,17 +95,18 @@ public PageReference searchItems(){//When you type in the search bar, this metho
  return null;
 }
 
-public PageReference filter() {
-	results.clear();
+    public PageReference filter() {
+        results.clear();
+        
+        setFilterBools();
+        
+        filterItemsOrActs();
+        filterPriority();
+        filterTimeFrame();
+        dateSearch();
     
-    setFilterBools();
-    
-	filterItemsOrActs();
-	filterPriority();
-	filterTimeFrame();
-
-	return null;
-}
+        return null;
+    }
     
     public void setFilterBools() {
         if (Priority == 'HIGH') {
@@ -129,16 +131,16 @@ public PageReference filter() {
       endDate = null;
   } else if (TimeFrame == 'TODAY') {
     startDate = Date.today();
-    endDate = Date.today();
+    endDate = Date.today().addDays(1);
   } else if (TimeFrame == 'TOMORROW') {
     startDate = Date.today().addDays(1);
-    endDate = Date.today().addDays(1);
+    endDate = Date.today().addDays(2);
   } else if (TimeFrame == 'THISWEEK') {
     startDate = Date.today();
-    endDate = Date.today().toStartofWeek().addDays(6);
+    endDate = Date.today().toStartofWeek().addDays(7);
   } else if (TimeFrame == 'NEXTWEEK') {
     startDate = Date.today().toStartofWeek().addDays(7);
-    endDate = startDate.addDays(6);
+    endDate = startDate.addDays(7);
   } else if (TimeFrame == 'THISMONTH') {
     startDate = Date.today();
     endDate = Date.today().toStartOfMonth().addMonths(1);
@@ -147,7 +149,7 @@ public PageReference filter() {
     endDate = startDate.addMonths(1);
   } else if (TimeFrame == 'PAST') {
     startDate = date.newInstance((Date.today().year() - 10), date.today().month(), (date.today().day() - 1));
-    endDate = date.newInstance(Date.today().year(), date.today().month(), (date.today().day() - 1));
+    endDate = date.newInstance(Date.today().year(), date.today().month(), (date.today().day()));
   }
 }
     
@@ -193,20 +195,21 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
                 }
 			}
 		}
+        results.addAll(tempList);
 		currentItems = tempList;
 	}
 }
     
-public Boolean checkItem(Whiteboard_Item__c item) {
-    if (priorityBool != null) {
-        if ((priorityBool == true && item.High_Priority__c == true) || (priorityBool == false && item.High_Priority__c == false) || (priorityBool == false && item.High_Priority__c == true && item.Whiteboard_Item_Activities__r.size() > 0) || (priorityBool == true && item.High_Priority__c == false && item.Whiteboard_Item_Activities__r.size() > 0)) {
+    public Boolean checkItem(Whiteboard_Item__c item) {
+        if (priorityBool != null) {
+            if ((priorityBool == true && item.High_Priority__c == true) || (priorityBool == false && item.High_Priority__c == false) || (priorityBool == false && item.High_Priority__c == true && item.Whiteboard_Item_Activities__r.size() > 0) || (priorityBool == true && item.High_Priority__c == false && item.Whiteboard_Item_Activities__r.size() > 0)) {
+                return checkItemAct(item);
+            }
+        } else {
             return checkItemAct(item);
         }
-    } else {
-        return checkItemAct(item);
+        return false;
     }
-    return false;
-}
     
     public Boolean checkItemAct(Whiteboard_Item__c item) {
         if (itemActBool != null) {
@@ -248,6 +251,10 @@ public void dateSearch() {  //Used when a specific date is entered in the sideba
                     ORDER BY High_Priority__c DESC, CreatedDate
                     LIMIT 100]; 
 
+        System.debug('Specific Date Search Results');
+        for (Whiteboard_Item__c i : tempSet) {
+         	System.debug('Item: ' + i + ', with acts: ' + i.Whiteboard_Item_Activities__r);   
+        }
         addToResults(tempSet);
         //System.debug('List sent in to compare: ' + tempSet);
         return;
@@ -339,18 +346,18 @@ public void filterTimeFrame() {
     tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
                           FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <=: endDate
+                          WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
                           LIMIT 30)
                       FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <=: endDate
+                      WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate
                       ORDER BY High_Priority__c DESC, CreatedDate
                       LIMIT 100];
 
     specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
                           FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <=: endDate
+                          WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
                           LIMIT 30)
                       FROM Whiteboard_Item__c
@@ -513,6 +520,20 @@ public void filterTimeFrame() {
     // ********************************************************************************************************************************
     
     // ************************ DELETING ITEMS AND ACTIVITIES ****************************************************************
+
+    public PageReference clearActivity() {
+     	activity = new Whiteboard_Item_Activity__c();
+        editIndicator = false;
+        
+        return null;
+    }
+    
+    public PageReference clearItem() {
+     	Item = new Whiteboard_Item__c();
+        editIndicator = false;
+        
+        return null;
+    }
 
     public void completeAct() {
         List<Whiteboard_Item_Activity__c> completed = [SELECT Id, Name, Completed__c, CompletedBy__c, Completed_Date__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')];            
@@ -869,8 +890,7 @@ public void filterTimeFrame() {
     public PageReference saveActCompany() {
 
         if (!editIndicator)
-        	activity.Whiteboard_Item__c = WhiteboardId;
-
+        	activity.Whiteboard_Item__c = ItemId;
         if (activity.Name == '' || activity.Name == null) {
             return null;   
         }
@@ -895,57 +915,60 @@ public void filterTimeFrame() {
         return null;
     }
     
-    public void savePersonal() {
-
-        try
-        {
+    public PageReference savePersonal() {
+		if (Item.Name == '' || Item.Name == null) {
+            return null;   
+        }
+        try {
             Item.PersonalItem__c = true;
-            
-            //If edit boolean is true, update, otherwise insert
-            if(editIndicator == true)
-            {update Item;            	
+            if (assignedUser == '') {
+             	// no user   
+            } else {
+                List<User> users = [SELECT Name, Id FROM User WHERE Id =: assignedUser LIMIT 1];
+                if (users.size() > 0) {
+                    Item.assignedTo__r = users.get(0);
+                    System.debug('User: ' + users.get(0));
+                    Item.assignedTo__c = assignedUser;
+                }
             }
-            else
-            {insert Item;}
+            //If edit boolean is true, update, otherwise insert
+            if(editIndicator == true) {
+                Item.assignedTo__c = assignedUser;
+                update Item;            	
+            } else {
+                insert Item;
+            }
             editIndicator = false;
             
             Item = new Whiteboard_Item__c();
             getUserList();
-          
+          	assignedUser = null;
             getPersonalItems();         
         }
         catch(Exception ex)
         {
             ApexPages.addMessages(ex);
         }
-        return;
+        return null;
     }
     
     public PageReference saveActPersonal() {
-        if(editActivityIndicator == false) {
-        	activity.Whiteboard_Item__c = WhiteboardId;
-        }
-        
-        show = 'Id: ' + activity.Whiteboard_Item__c + ', Name: ' + activity.Name + ', Description: ' + activity.Description__c;
+        if (!editIndicator) 
+        	activity.Whiteboard_Item__c = ItemId;
         if (activity.Name == '' || activity.Name == null) {
             return null;   
         }
-        try {
-            activity.PersonalItem__c = true;
-        
-            //If edit boolean is true, update, otherwise insert
-            if(editActivityIndicator == true)
-            {update activity;}
-            else
-            {insert activity;} 
-            editActivityIndicator = false;
-            
-            //insert activity;
+        try {           
+            if (editIndicator == true) {
+                update activity;
+            } else {
+                activity.PersonalItem__c = true;
+                insert activity;
+            }
+            editIndicator = false;
             activity = new Whiteboard_Item_Activity__c();
-            
             getUserList();
-            
-            //getCompanyItems();
+            assignedUser = null;
             getPersonalItems();
         }                
         catch(Exception ex) {
