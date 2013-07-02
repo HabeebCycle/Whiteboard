@@ -93,17 +93,18 @@ public PageReference searchItems(){//When you type in the search bar, this metho
  return null;
 }
 
-public PageReference filter() {
-	results.clear();
+    public PageReference filter() {
+        results.clear();
+        
+        setFilterBools();
+        
+        filterItemsOrActs();
+        filterPriority();
+        filterTimeFrame();
+        dateSearch();
     
-    setFilterBools();
-    
-	filterItemsOrActs();
-	filterPriority();
-	filterTimeFrame();
-
-	return null;
-}
+        return null;
+    }
     
     public void setFilterBools() {
         if (Priority == 'HIGH') {
@@ -197,16 +198,16 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
 	}
 }
     
-public Boolean checkItem(Whiteboard_Item__c item) {
-    if (priorityBool != null) {
-        if ((priorityBool == true && item.High_Priority__c == true) || (priorityBool == false && item.High_Priority__c == false) || (priorityBool == false && item.High_Priority__c == true && item.Whiteboard_Item_Activities__r.size() > 0) || (priorityBool == true && item.High_Priority__c == false && item.Whiteboard_Item_Activities__r.size() > 0)) {
+    public Boolean checkItem(Whiteboard_Item__c item) {
+        if (priorityBool != null) {
+            if ((priorityBool == true && item.High_Priority__c == true) || (priorityBool == false && item.High_Priority__c == false) || (priorityBool == false && item.High_Priority__c == true && item.Whiteboard_Item_Activities__r.size() > 0) || (priorityBool == true && item.High_Priority__c == false && item.Whiteboard_Item_Activities__r.size() > 0)) {
+                return checkItemAct(item);
+            }
+        } else {
             return checkItemAct(item);
         }
-    } else {
-        return checkItemAct(item);
+        return false;
     }
-    return false;
-}
     
     public Boolean checkItemAct(Whiteboard_Item__c item) {
         if (itemActBool != null) {
@@ -248,6 +249,10 @@ public void dateSearch() {  //Used when a specific date is entered in the sideba
                     ORDER BY High_Priority__c DESC, CreatedDate
                     LIMIT 100]; 
 
+        System.debug('Specific Date Search Results');
+        for (Whiteboard_Item__c i : tempSet) {
+         	System.debug('Item: ' + i + ', with acts: ' + i.Whiteboard_Item_Activities__r);   
+        }
         addToResults(tempSet);
         //System.debug('List sent in to compare: ' + tempSet);
         return;
