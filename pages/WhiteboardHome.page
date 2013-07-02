@@ -112,7 +112,7 @@
                     </apex:form>  
                     <apex:form >
                         <apex:inputField value="{!proxyObject.closeDate}" id="theDateInput" style="width: 65px" required="false"></apex:inputField><br/>
-                        <apex:commandButton styleClass="btn btn-primary" action="{!dateSearch}" value="Go!"/>
+                        <apex:commandButton styleClass="btn btn-primary" action="{!filter}" value="Go!"/>
                         <apex:commandButton styleClass="btn" action="{!clearSearch}" value="Clear Search" reRender="sidebarPanel, wholePage"/>
                      </apex:form>  
                     </div>
