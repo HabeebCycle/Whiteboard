@@ -64,7 +64,8 @@ public with sharing class WhiteboardController {
         filterUser = new List<User>();
         getUserForFilter();
         AllUsers = new List<User>();
-        assignedUser = null;        
+        assignedUser = null; 
+        searchValue = '';
     }
     
 ///////Side bar methods//////////       
@@ -112,7 +113,6 @@ public with sharing class WhiteboardController {
     }
     
     public void setFilterBools() {
-        searchValue = '';
         getUserForFilter();
         
         if (Priority == 'HIGH') {
