@@ -37,6 +37,7 @@ public with sharing class WhiteboardController {
    public List<Whiteboard_Item__c> listResults {get; set; }     //holds initial filter results as a list
     
     public Boolean editIndicator {get; set;}
+    public Boolean editActivityIndicator {get; set;}
 
 
     // ************************ SETTING UP CONTROLLER AND POPULATING LISTS ****************************************************************
@@ -52,6 +53,7 @@ public with sharing class WhiteboardController {
         getCompanyItems();
         indicator = true; 
         editIndicator = false;
+        editActivityIndicator = false;
         setBoardTitle(indicator);
         
         AllUsers = new List<User>();
@@ -175,7 +177,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
 			}
 			if (location != -1) {
 				Whiteboard_Item__c toAdd = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c,
-                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE Id IN :activities
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
@@ -236,7 +238,7 @@ public void dateSearch() {  //Used when a specific date is entered in the sideba
         return;
 	} else {
 	  	tempSet = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c,
-                   		(SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c
+                   		(SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE PersonalItem__c !=: indicator AND Due_Date__c =: o.closeDate
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
@@ -262,7 +264,7 @@ public void filterItemsOrActs() {
         return;
 	} else if (itemOrActivity == 'ITEM') {
 	  	tempSet = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c,
-                   		(SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c
+                   		(SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE PersonalItem__c !=: indicator AND id =: 'xct345'
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
@@ -278,7 +280,7 @@ public void filterItemsOrActs() {
 
 	} else if (itemOrActivity == 'ACTIVITY') {
         tempSet = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c,
-                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE PersonalItem__c !=: indicator
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
@@ -308,7 +310,7 @@ public void filterPriority() {
     }
 
     List<Whiteboard_Item__c> items = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Completed_Date__c, Item_Due_Date__c, Past_Due__c,
-        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
          FROM Whiteboard_Item_Activities__r
          WHERE High_Priority__c =: priorityBool AND PersonalItem__c !=: indicator
          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
@@ -335,7 +337,7 @@ public void filterTimeFrame() {
   List<Whiteboard_Item__c> specialCase = new List<Whiteboard_Item__c>();
 
     tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
-                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <=: endDate
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
@@ -346,7 +348,7 @@ public void filterTimeFrame() {
                       LIMIT 100];
 
     specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
-                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <=: endDate
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
@@ -366,7 +368,7 @@ public void filterTimeFrame() {
 }
     
     public PageReference clearSearch() {
-        
+
         itemOrActivity = 'NONE';
         itemActBool = null;
         Priority = 'NONE';
@@ -375,7 +377,6 @@ public void filterTimeFrame() {
         startDate = null;
         endDate = null;
         o.closeDate = null;
-        currentItems = getAllItems();
         
         return null;
     }
@@ -427,7 +428,7 @@ public void filterTimeFrame() {
     
     public List<Whiteboard_Item__c> getAllItems() {
         List<Whiteboard_Item__c> allItems =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
-                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE PersonalItem__c !=: indicator
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
@@ -442,7 +443,7 @@ public void filterTimeFrame() {
     public void getCompanyItems() {
         //currentWhiteboard = 'Company Whiteboard';
         currentItems =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
-                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE PersonalItem__c =: false 
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
@@ -477,7 +478,7 @@ public void filterTimeFrame() {
     public void getPersonalItems() {
         currentWhiteboard = 'Personal Whiteboard';
         currentItems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Completed_Date__c, Item_Due_Date__c, Past_Due__c,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
@@ -513,29 +514,8 @@ public void filterTimeFrame() {
     
     // ************************ DELETING ITEMS AND ACTIVITIES ****************************************************************
 
-    public PageReference clearActivity() {
-     	activity.Name = '';
-        activity.Description__c = '';
-        activity.High_Priority__c = false;
-        activity.Due_Date__c = null;
-        activity.actAssignedTo__c = null;
-        editIndicator = false;
-        
-        return null;
-    }
-    
-    public PageReference clearItem() {
-     	Item.Name = '';
-        Item.High_Priority__c = false;
-        Item.Item_Due_Date__c = null;
-        Item.assignedTo__c = null;
-        editIndicator = false;
-        
-        return null;
-    }
-    
     public void completeAct() {
-        List<Whiteboard_Item_Activity__c> completed = [SELECT Id, Name, Completed__c, CompletedBy__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')];            
+        List<Whiteboard_Item_Activity__c> completed = [SELECT Id, Name, Completed__c, CompletedBy__c, Completed_Date__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')];            
         for (Whiteboard_Item_Activity__c act : completed) {
             act.Completed__c = true;   
             act.Completed_Date__c = date.today();
@@ -560,7 +540,7 @@ public void filterTimeFrame() {
         
         //Get the selected item
         List<Whiteboard_Item__c> itemsToComplete = [SELECT id, name, Completed__c, Completedby__c, OwnerId,
-                                                     (SELECT Name, Id, Completedby__c, CompletedBy__r.Name, Completed__c
+                                                     (SELECT Name, Id, Completedby__c, CompletedBy__r.Name, Completed__c, Completed_Date__c
                                                       FROM Whiteboard_Item_Activities__r
                                                       WHERE PersonalItem__c =: false 
                                                       LIMIT 30)
@@ -590,7 +570,7 @@ public void filterTimeFrame() {
         
         //Get the selected item
         List<Whiteboard_Item__c> itemsToUnComplete = [SELECT id, name, Completed__c, CompletedBy__c, OwnerId,
-                                                        (SELECT Name, Id, Completedby__c, CompletedBy__r.Name, Completed__c
+                                                        (SELECT Name, Id, Completedby__c, CompletedBy__r.Name, Completed__c, Completed_Date__c
                                                           FROM Whiteboard_Item_Activities__r
                                                           WHERE PersonalItem__c =: false 
                                                           LIMIT 30)
@@ -618,7 +598,7 @@ public void filterTimeFrame() {
     }
     
     public void uncompleteAct() {
-        List<Whiteboard_Item_Activity__c> completed = [SELECT Id, Name, Completed__c, CompletedBy__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')];            
+        List<Whiteboard_Item_Activity__c> completed = [SELECT Id, Name, Completed__c, CompletedBy__c, Completed_Date__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')];            
         for (Whiteboard_Item_Activity__c act : completed) {
             act.Completed__c = false;  
             act.CompletedBy__c = null;
@@ -682,7 +662,7 @@ public void filterTimeFrame() {
     
     public void setActPriority()  {
         //Get the selected item
-        List<Whiteboard_Item_Activity__c> actToGivePriority = [SELECT Id, Name, High_Priority__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')];            
+        List<Whiteboard_Item_Activity__c> actToGivePriority = [SELECT Id, Name, High_Priority__c, Completed_Date__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')];            
         
         //Check the "High Priority" checkbox on that activity
         for(Integer i=0; i < actToGivePriority.size(); i++)
@@ -702,7 +682,7 @@ public void filterTimeFrame() {
 
     public void unsetActPriority()  {
         //Get the selected item
-        List<Whiteboard_Item_Activity__c> actToGivePriority = [SELECT Id, Name, High_Priority__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')];            
+        List<Whiteboard_Item_Activity__c> actToGivePriority = [SELECT Id, Name, High_Priority__c, Completed_Date__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')];            
         
         //unCheck the "High Priority" checkbox on that activity
         for(Integer i=0; i < actToGivePriority.size(); i++)
@@ -739,7 +719,7 @@ public void filterTimeFrame() {
     }
     
     public void deleteAct() {
-        List<Whiteboard_Item_Activity__c> goners = [SELECT Id, Name from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')];            
+        List<Whiteboard_Item_Activity__c> goners = [SELECT Id, Name, Completed_Date__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')];            
         try {
              delete goners;
              if (indicator) {
@@ -771,9 +751,10 @@ public void filterTimeFrame() {
     
     public PageReference editActivity() {
 		//Set edit boolean to true
-        editIndicator = true;
-        
-        List<Whiteboard_Item_Activity__c> Activities = [SELECT Id, Name, High_Priority__c, Due_Date__c, actAssignedTo__r.Name, Description__c from Whiteboard_Item_Activity__c where Id = :ApexPages.currentpage().getparameters().get('activityId')];
+        editActivityIndicator = true;
+
+        List<Whiteboard_Item_Activity__c> Activities = [SELECT Id, Name, High_Priority__c, Due_Date__c, actAssignedTo__r.Name, Description__c, Completed_Date__c from Whiteboard_Item_Activity__c where Id = :ApexPages.currentpage().getparameters().get('activityId')];
+
         if (Activities.size() > 0) {
             activity = Activities.get(0);
         }
@@ -789,14 +770,14 @@ public void filterTimeFrame() {
         assignedUser = null;
         return null;
     }
-    
-    
+
+
     // ********************************************************************************************************************************
     
     public Whiteboard_Item__c[] getWhiteboard() {
 
         return [SELECT Name, Id,
-                     (SELECT Name, Due_Date__c, Description__c, Id
+                     (SELECT Name, Due_Date__c, Description__c, Id, Completed_Date__c
                       FROM Whiteboard_Item_Activities__r
                       WHERE PersonalItem__c =: false 
                       ORDER BY CreatedDate 
@@ -810,7 +791,7 @@ public void filterTimeFrame() {
     public Whiteboard_Item__c[] getPersonalWhiteboard() {
     
         return [SELECT Name, Id,
-                         (SELECT Name, Due_Date__c, Description__c, Id
+                         (SELECT Name, Due_Date__c, Description__c, Id, Completed_Date__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
                           ORDER BY CreatedDate 
@@ -886,9 +867,10 @@ public void filterTimeFrame() {
     }
     
     public PageReference saveActCompany() {
+
         if (!editIndicator)
         	activity.Whiteboard_Item__c = WhiteboardId;
-        //show = 'Id: ' + activity.Whiteboard_Item__c + ', Name: ' + activity.Name + ', Description: ' + activity.Description__c;
+
         if (activity.Name == '' || activity.Name == null) {
             return null;   
         }
@@ -940,8 +922,10 @@ public void filterTimeFrame() {
     }
     
     public PageReference saveActPersonal() {
+        if(editActivityIndicator == false) {
+        	activity.Whiteboard_Item__c = WhiteboardId;
+        }
         
-        activity.Whiteboard_Item__c = WhiteboardId;
         show = 'Id: ' + activity.Whiteboard_Item__c + ', Name: ' + activity.Name + ', Description: ' + activity.Description__c;
         if (activity.Name == '' || activity.Name == null) {
             return null;   
@@ -949,8 +933,18 @@ public void filterTimeFrame() {
         try {
             activity.PersonalItem__c = true;
         
-            insert activity;
+            //If edit boolean is true, update, otherwise insert
+            if(editActivityIndicator == true)
+            {update activity;}
+            else
+            {insert activity;} 
+            editActivityIndicator = false;
+            
+            //insert activity;
             activity = new Whiteboard_Item_Activity__c();
+            
+            getUserList();
+            
             //getCompanyItems();
             getPersonalItems();
         }                
@@ -1008,7 +1002,7 @@ public void filterTimeFrame() {
         
         //System.assertEquals(null, controller.deleteAct());
         
-        //Whiteboard_Item__c[] w = [SELECT Name, Id, (select Name, Due_Date__c, Description__c from Whiteboard_Item_Activities__r order by CreatedDate)
+        //Whiteboard_Item__c[] w = [SELECT Name, Id, (select Name, Due_Date__c, Description__c, Completed_Date__c from Whiteboard_Item_Activities__r order by CreatedDate)
          //                         from Whiteboard_Item__c order by CreatedDate];
         //System.assertEquals(w[0].Name, controller.getWhiteboard()[0].Name);
         
