@@ -23,12 +23,17 @@ public with sharing class WhiteboardController {
     
     public String searchValue { get; set; }        //filter by search bar text
     public String itemOrActivity { get ; set; }     // filter by item or activity
+    public Boolean itemActBool { get; set; } 		// true if item, false if act
     public String Priority { get; set; }			// filter item by priority
-    public String TimeFrame { get; set; } 	        // filter item by time frame    
-    Opportunity o = new Opportunity();
+    public Boolean priorityBool { get; set; }
+    public String TimeFrame { get; set; } 	        // filter item by time frame   
+    public Date startDate { get; set; }
+    public Date endDate { get; set; }
+
+    public Opportunity o = new Opportunity();
     public Opportunity getProxyObject() { return o; }   
 
-   public Set<Whiteboard_Item__c> results { get; set; }		// holds final filter results
+   public List<Whiteboard_Item__c> results { get; set; }		// holds final filter results
    public List<Whiteboard_Item__c> listResults {get; set; }     //holds initial filter results as a list
     
     public Boolean editIndicator {get; set;}
@@ -40,7 +45,8 @@ public with sharing class WhiteboardController {
         currentItems = new List<Whiteboard_Item__c>();
         trashItems = new List<Whiteboard_Item__c>();
         completedItems = new List<Whiteboard_Item__c>();
-
+        results = new List<Whiteboard_Item__c>();
+ 
         Item = new Whiteboard_Item__c();
         activity = new Whiteboard_Item_Activity__c();
         getCompanyItems();
@@ -87,157 +93,38 @@ public PageReference searchItems(){//When you type in the search bar, this metho
 }
 
 public PageReference filter() {
-
-setResults();
-
+	results.clear();
+    
+    setFilterBools();
+    
 	filterItemsOrActs();
 	filterPriority();
-	//fiterTimeFrame();
+	filterTimeFrame();
 
-  compileListResults();
-
-return null;
+	return null;
 }
-
-public void dateSearch() { //Used when a specific date is entered in the sidebar
-
-}
-
-//SIDEBAR METHODS
-
-public void setResults() {
-   listResults = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
-                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c !=: indicator
-                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                          LIMIT 30)
-                      FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c !=: indicator AND Completed__c =: false
-                      ORDER BY High_Priority__c DESC, CreatedDate
-                      LIMIT 100];
-
-    results = new Set<Whiteboard_Item__c>();
-    results.addAll(listResults);
-
-}
-
-public void compileResults(List<Whiteboard_Item__c> result) {
-  results.retainAll(result);
-}
-
-public void compileListResults() {
-  currentItems = new List<Whiteboard_Item__c>();
-  currentItems.addAll(results);
-}
-
-public void filterItemsOrActs() {
-
-  List<Whiteboard_Item__c> tempSet = new List<Whiteboard_Item__c>();
-  List<Whiteboard_Item__c> specialCase = new List<Whiteboard_Item__c>();
-
-	if (itemOrActivity == 'NONE') {
-
-	} else if (itemOrActivity == 'ITEM') {
-	  	tempSet = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c
-                      FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c !=: indicator AND Completed__c =: false
-                      ORDER BY High_Priority__c DESC, CreatedDate
-                      LIMIT 100]; 
-
-               compileResults(tempSet);
-
-	} else if (itemOrActivity == 'ACTIVITY') {
-	   tempSet = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
-                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c !=: indicator
-                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                          LIMIT 30)
-                      FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c >: 0
-                      ORDER BY High_Priority__c DESC, CreatedDate
-                      LIMIT 100];
-
-         compileResults(tempSet);
-	}	
-}
-
-
-
-public void filterPriority() {
-
-  List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
-  List<Whiteboard_Item__c> specialCase = new List<Whiteboard_Item__c>();
-
-
-  if (Priority == 'NONE') {
-
-  } else if (Priority == 'NOPRIORITY') {
-    	   tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
-                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c !=: indicator AND High_Priority__c =: false
-                          ORDER BY High_Priority__c DESC, CreatedDate
-                          LIMIT 30)
-                      FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =: false
-                      ORDER BY High_Priority__c DESC, CreatedDate
-                      LIMIT 100];
-
-          specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name,               Activities__c,
-                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c !=: indicator AND High_Priority__c =: false
-                          ORDER BY High_Priority__c DESC, CreatedDate
-                          LIMIT 30)
-                      FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c > 0
-                      ORDER BY High_Priority__c DESC, CreatedDate
-                      LIMIT 100];
-
-    tempList.addAll(specialCase);
-    compileResults(tempList);
-
-  } else if (Priority == 'HIGH') {
-      tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
-                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c !=: indicator AND High_Priority__c =: true
-                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate
-                          LIMIT 30)
-                      FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =: true
-                      ORDER BY High_Priority__c DESC, CreatedDate
-                      LIMIT 100];
-
-
-        specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
-                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c !=: indicator AND High_Priority__c =: true
-                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate
-                          LIMIT 30)
-                      FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c > 0
-                      ORDER BY High_Priority__c DESC, CreatedDate
-                      LIMIT 100];
-
-    tempList.addAll(specialCase);
-    compileResults(tempList);
-  }
-}
-
-/* not currently working
-public void filterTimeFrame() {
-  List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
-  List<Whiteboard_Item__c> specialCase = new List<Whiteboard_Item__c>();
-
-  Date startDate;
-  Date endDate;
+    
+    public void setFilterBools() {
+        if (Priority == 'HIGH') {
+            priorityBool = true;
+        } else if (Priority == 'NOPRIORITY') {
+            priorityBool = false;
+        } else {
+            priorityBool = null;   
+        }
+        
+        if (itemOrActivity == 'ITEM') {
+         	itemActBool = true;   
+        } else if (itemOrActivity == 'ACTIVITY') {
+         	itemActBool = false;   
+        } else {
+         	itemActBool = null;   
+        }
+        
 
   if(TimeFrame == 'NONE') {
-
+	startDate = null;
+      endDate = null;
   } else if (TimeFrame == 'TODAY') {
     startDate = Date.today();
     endDate = Date.today();
@@ -260,6 +147,192 @@ public void filterTimeFrame() {
     startDate = date.newInstance((Date.today().year() - 10), date.today().month(), (date.today().day() - 1));
     endDate = date.newInstance(Date.today().year(), date.today().month(), (date.today().day() - 1));
   }
+}
+    
+public void addToResults(List<Whiteboard_Item__c> inList) {
+    List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
+	System.debug('List coming in to compare: ' + inList);
+	if (results.size() == 0) {
+		results.addAll(inList);
+        System.debug('Final result list: ' + results);
+        currentItems = results;
+        return;
+	} else {
+		for(Whiteboard_Item__c item1 : currentItems) {
+			Integer location = -1;
+			List<Whiteboard_Item_Activity__c> activities = new List<Whiteboard_Item_Activity__c>();
+			for(Integer item2 = 0; item2 < inList.size(); item2++) {
+				if(item1.id == inList.get(item2).id) {
+					location = item2;
+					for(Whiteboard_Item_Activity__c act1: item1.Whiteboard_Item_Activities__r){
+						for(Whiteboard_Item_Activity__c act2: inList.get(item2).Whiteboard_Item_Activities__r){
+							if(act1.id == act2.id){
+								activities.add(act1);
+							}
+						}
+					}
+				}
+			}
+			if (location != -1) {
+				Whiteboard_Item__c toAdd = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE Id IN :activities
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)          
+                      FROM Whiteboard_Item__c
+                      WHERE Id =: inList.get(location).Id
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 1]; 
+				Boolean add = checkItem(toAdd);
+                if (add) {
+                    System.debug('To Add: ' + toAdd + ', acts: ' + toAdd.Whiteboard_Item_Activities__r);
+                    tempList.add(toAdd);
+                }
+			}
+		}
+		currentItems = tempList;
+	}
+}
+    
+public Boolean checkItem(Whiteboard_Item__c item) {
+    if (priorityBool != null) {
+        if ((priorityBool == true && item.High_Priority__c == true) || (priorityBool == false && item.High_Priority__c == false) || (priorityBool == false && item.High_Priority__c == true && item.Whiteboard_Item_Activities__r.size() > 0) || (priorityBool == true && item.High_Priority__c == false && item.Whiteboard_Item_Activities__r.size() > 0)) {
+            return checkItemAct(item);
+        }
+    } else {
+        return checkItemAct(item);
+    }
+    return false;
+}
+    
+    public Boolean checkItemAct(Whiteboard_Item__c item) {
+        if (itemActBool != null) {
+            if (itemActBool == true || (itemActBool == false && item.Whiteboard_Item_Activities__r.size() > 0)) {
+                return checkItemDate(item);   
+            }
+        } else {
+            return checkItemDate(item);
+        }
+        return false;
+    }
+    
+    public Boolean checkItemDate(Whiteboard_Item__c item) {
+        if (o.closeDate != null) {
+            if (item.Item_Due_Date__c == o.closeDate || (item.Whiteboard_Item_Activities__r.size() > 0)) {
+                return true;   
+            }
+        } else {
+            return true;
+        }
+        return false;
+    }
+
+public void dateSearch() {  //Used when a specific date is entered in the sidebar
+	List<Whiteboard_Item__c> tempSet = new List<Whiteboard_Item__c>();
+    
+    if (o.closeDate == null) {
+		addToResults(getAllItems());
+        return;
+	} else {
+	  	tempSet = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c,
+                   		(SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c !=: indicator AND Due_Date__c =: o.closeDate
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)    
+                   	FROM Whiteboard_Item__c
+                    WHERE PersonalItem__c !=: indicator AND Completed__c =: false
+                    ORDER BY High_Priority__c DESC, CreatedDate
+                    LIMIT 100]; 
+
+        addToResults(tempSet);
+        //System.debug('List sent in to compare: ' + tempSet);
+        return;
+    }
+}
+
+public void filterItemsOrActs() {
+
+  List<Whiteboard_Item__c> tempSet = new List<Whiteboard_Item__c>();
+  List<Whiteboard_Item__c> specialCase = new List<Whiteboard_Item__c>();
+
+	if (itemOrActivity == 'NONE') {
+		addToResults(getAllItems());
+        return;
+	} else if (itemOrActivity == 'ITEM') {
+	  	tempSet = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c,
+                   		(SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c !=: indicator AND id =: 'xct345'
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)    
+                   	FROM Whiteboard_Item__c
+                    WHERE PersonalItem__c !=: indicator AND Completed__c =: false
+                    ORDER BY High_Priority__c DESC, CreatedDate
+                    LIMIT 100]; 
+
+        addToResults(tempSet);
+        //System.debug('List sent in to compare: ' + tempSet);
+        return;
+
+	} else if (itemOrActivity == 'ACTIVITY') {
+        tempSet = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c !=: indicator
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c >: 0
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+    
+        List<Whiteboard_Item__c> keep = new List<Whiteboard_Item__c>(); 
+        for (Whiteboard_Item__c i : tempSet) {
+            if (i.Whiteboard_Item_Activities__r.size() != 0) {
+                keep.add(i);
+            }
+        }
+        addToResults(keep);
+        return;
+	}	
+}
+
+
+
+public void filterPriority() {
+    if (Priority == 'NONE') {
+        addToResults(getAllItems());
+        return;
+    }
+
+    List<Whiteboard_Item__c> items = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Completed_Date__c, Item_Due_Date__c, Past_Due__c,
+        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+         FROM Whiteboard_Item_Activities__r
+         WHERE High_Priority__c =: priorityBool AND PersonalItem__c !=: indicator
+         ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+         LIMIT 30)
+    FROM Whiteboard_Item__c
+    WHERE PersonalItem__c !=: indicator
+    ORDER BY High_Priority__c DESC, CreatedDate];
+
+    System.debug('PRIORITY FILTER RESULTS');
+    for (Whiteboard_Item__c i : items) {
+    	System.debug('Item: ' + i + ', acts: ' + i.Whiteboard_Item_Activities__r);
+    }
+    addToResults(items);
+}
+
+public void filterTimeFrame() {
+    
+    if (startDate == null) {
+        addToResults(getAllItems());
+        return;
+    }
+    
+  List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
+  List<Whiteboard_Item__c> specialCase = new List<Whiteboard_Item__c>();
 
     tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name
@@ -282,12 +355,29 @@ public void filterTimeFrame() {
                       WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c > 0
                       ORDER BY High_Priority__c DESC, CreatedDate
                       LIMIT 100];
+    
+    for (Whiteboard_Item__c i : specialCase) {
+        if (i.Whiteboard_Item_Activities__r.size() > 0) {
+            tempList.add(i);
+        }
+    } 
 
-  tempList.add(specialCase);
-  compileResults(tempList);
+    addToResults(tempList);
 }
-*/
+    
+    public PageReference clearSearch() {
 
+        itemOrActivity = 'NONE';
+        itemActBool = null;
+        Priority = 'NONE';
+        priorityBool = null;
+        TimeFrame = 'NONE';
+        startDate = null;
+        endDate = null;
+        o.closeDate = null;
+        
+        return null;
+    }
 
 
 //////end of sidebar methods////////////////////////////////    
@@ -332,6 +422,20 @@ public void filterTimeFrame() {
                 currentWhiteboard = userName + '\'s Whiteboard';
             }
         }
+    }
+    
+    public List<Whiteboard_Item__c> getAllItems() {
+        List<Whiteboard_Item__c> allItems =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                          FROM Whiteboard_Item_Activities__r
+                          WHERE PersonalItem__c !=: indicator
+                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                          LIMIT 30)
+                      FROM Whiteboard_Item__c
+                      WHERE PersonalItem__c !=: indicator AND Completed__c =: false
+                      ORDER BY High_Priority__c DESC, CreatedDate
+                      LIMIT 100];
+        return allItems;
     }
     
     public void getCompanyItems() {
@@ -647,12 +751,20 @@ public void filterTimeFrame() {
 		//Set edit boolean to true
         editIndicator = true;
         
-        List<Whiteboard_Item_Activity__c> Activities = [SELECT Id, Name, High_Priority__c, Due_Date__c, actAssignedTo__r.Name from Whiteboard_Item_Activity__c where Id = :ApexPages.currentpage().getparameters().get('activityId')];
+        List<Whiteboard_Item_Activity__c> Activities = [SELECT Id, Name, High_Priority__c, Due_Date__c, actAssignedTo__r.Name, Description__c from Whiteboard_Item_Activity__c where Id = :ApexPages.currentpage().getparameters().get('activityId')];
         if (Activities.size() > 0) {
             activity = Activities.get(0);
         }
         getUserList();                  
 
+        return null;
+    }
+    
+    public PageReference reset() {
+    	editIndicator = false;
+        Item = new Whiteboard_Item__c();
+        activity = new Whiteboard_Item_Activity__c();
+        assignedUser = null;
         return null;
     }
     
@@ -722,14 +834,17 @@ public void filterTimeFrame() {
             
             //If edit boolean is true, update, otherwise insert
             if(editIndicator == true)
-            {update Item;}
+            {
+                Item.assignedTo__c = assignedUser;
+                update Item;
+            }
             else
             {insert Item;} 
             editIndicator = false;
             
             Item = new Whiteboard_Item__c();
             getUserList();
-
+			assignedUser = null;
             getCompanyItems();         
         }
         catch(Exception ex) {
@@ -749,14 +864,25 @@ public void filterTimeFrame() {
     }
     
     public PageReference saveActCompany() {
-        activity.Whiteboard_Item__c = WhiteboardId;
-        show = 'Id: ' + activity.Whiteboard_Item__c + ', Name: ' + activity.Name + ', Description: ' + activity.Description__c;
+        if (!editIndicator)
+        	activity.Whiteboard_Item__c = WhiteboardId;
+        //show = 'Id: ' + activity.Whiteboard_Item__c + ', Name: ' + activity.Name + ', Description: ' + activity.Description__c;
         if (activity.Name == '' || activity.Name == null) {
             return null;   
         }
         try {
-            insert activity;
+            
+            if(editIndicator == true)
+            {update activity;}
+            else
+            {insert activity;} 
+            
+            editIndicator = false;
+            
             activity = new Whiteboard_Item_Activity__c();
+            getUserList();
+			assignedUser = null;
+            
             getCompanyItems();
         }                
         catch(Exception ex) {
