@@ -105,7 +105,7 @@
             //alert('Please Correct The Date Format');            
             //document.getElementById('dateError').innerHTML = 'Please Enter Date with MM/DD/YYYY Format';  
             document.getElementById('dateError').style.display = 'inline';
-            document.getElementById('thePage:itemFormC:theDueDate').value = '';
+            //document.getElementById('thePage:itemFormC:theDueDate').value = '';
             
             indicateItemError();
             return false;
@@ -131,18 +131,44 @@
         //Display an error message in 'errorDate' id it doesn't fit it.
         if(!testResult)
         {
-            alert('Please Correct The Date Format');
+            //alert('Please Correct The Date Format');
             //document.getElementById('dateErrorAct').innerHTML = 'Please Enter Date with MM/DD/YYYY Format';  
             document.getElementById('dateErrorAct').style.display = 'inline';
-            document.getElementById('thePage:itemFormA:theDueDateAct').value = '';
+            //document.getElementById('thePage:itemFormA:theDueDateAct').value = '';
+            
+            indicateItemError();
             return false;
         }
         else
         {document.getElementById('dateErrorAct').style.display = 'none';}
         return true;
     }
+            
+    function checkTheNameAct() {        
+        var theItemName = document.getElementById('thePage:itemFormA:theActName').value;        
+        if(theItemName == '' || theItemName == null) 
+        {
+            //alert('Please Enter a Name for the Item');            
+            document.getElementById('nameErrorAct').style.display = 'inline';
+            //document.getElementById('thePage:itemFormC:theActName').focus();
+            
+            indicateItemError();
+            return false;
+        }
+        else
+        {
+            document.getElementById('nameErrorAct').style.display = 'none';
+            return true;
+		}  
+	}  
 	
 	var myModalOpened = false; 
+            
+    function dontHighlightNameBox()
+        {myModalOpened = true;}
+    function dontHighlightNameBoxAct()
+        {myModalOpenedAct = true;}
+            
     function myModalOpenedReset()
         {
             myModalOpened = false;
@@ -156,7 +182,23 @@
 		{document.getElementById('thePage:itemFormC:theItemName').focus();}
         myModalOpened = true;
         return true;    
-    }               
+    }   
+
+	var myModalOpenedAct = false; 
+    function myModalOpenedActReset()
+        {
+            myModalOpenedAct = false;
+            document.getElementById('nameErrorAct').style.display = 'none';
+            document.getElementById('dateErrorAct').style.display = 'none';
+        }                
+        
+	function setCursorToNameAct(){        
+        //alert('doNothing function entered');
+        if(myModalOpenedAct == false)
+		{document.getElementById('thePage:itemFormA:theActName').focus();}
+        myModalOpenedAct = true;
+        return true;    
+    }             
             
     function doNothing() {return true;}
     </script>
@@ -238,7 +280,7 @@
                     <div id="myModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" >
                         <apex:form id="itemFormC" onmouseover="setCursorToName();">
                             <div class="modal-header">
-                                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
+                                <!-- <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button> -->
                                 <h3 id="myModalLabel">{!IF(editIndicator == false, 'New Item', 'Edit Item')}</h3>
                             </div>
                             <div class="modal-body">
@@ -280,8 +322,8 @@
                                                 <apex:commandButton alt="tooltip" title="Click to delete" action="{!deleteItem}" value="✖" id="delete" reRender="wholePage" styleClass="close" onclick="if (!confirm('Are you sure you want to delete this item forever?')) {return;};">
                                                     <apex:param name="ItemId" value="{!item.Id}"/>
                                                 </apex:commandButton>
-                                                <button href="#myModal" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="editItem('{!item.Id}');" rel="tooltip" data-placement="top" title="Click to edit">✎</button>
-                                                <button href="#myModalAct" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="itemId='{!item.Id}'" rel="tooltip" data-placement="top" title="Click to add an Activity">✚</button>
+                                                <button href="#myModal" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="editItem('{!item.Id}'); dontHighlightNameBox();" rel="tooltip" data-placement="top" title="Click to edit">✎</button>
+                                                <button href="#myModalAct" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="itemId='{!item.Id}'; myModalOpenedActReset();" rel="tooltip" data-placement="top" title="Click to add an Activity">✚</button>
                                                 <apex:commandLink rel="tooltip" title="Click to toggle priority" styleClass="priority" rendered="{!IF(item.High_Priority__c == true, true, false)}"  action="{!unsetPriority}" rerender="wholePage">
                                                     <apex:image url="{!URLFOR($Resource.bootstrap, '/bootstrap/img/priority.png')}" width="25"/>
                                                     <apex:param name="ItemId" value="{!item.Id}"/>
@@ -339,7 +381,7 @@
                                                             <apex:commandButton action="{!deleteAct}" value="✖" id="delete" reRender="curRow" styleClass="{!IF(act.Completed__c == true, 'btn close restoreButton trashButton', 'close')}" onclick="if (!confirm('Are you sure you want to delete this activity forever?')) {return;};">
                                                                 <apex:param name="ActId" value="{!act.Id}"/>
                                                             </apex:commandButton>
-                                                            <button href="#myModalAct" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="editActivity('{!act.Id}');" data-placement="top" style="{!IF(act.Completed__c == true, 'display: none !important; ', '')}">✎</button>
+                                                            <button href="#myModalAct" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="editActivity('{!act.Id}'); dontHighlightNameBoxAct();" data-placement="top" style="{!IF(act.Completed__c == true, 'display: none !important; ', '')}">✎</button>
                                                             <apex:commandLink styleClass="priority" rendered="{!IF(AND(act.High_Priority__c == true, act.Completed__c == false), true, false)}"  action="{!unsetActPriority}" rerender="curRow">
                                                                 <apex:image url="{!URLFOR($Resource.bootstrap, '/bootstrap/img/priority.png')}" width="25"/>
                                                                 <apex:param name="ActId" value="{!act.Id}"/>
@@ -453,14 +495,17 @@
     
                 <!-- NEW Activity MODAL -->
                 <div id="myModalAct" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-                    <apex:form id="itemFormA">
+                    <apex:form id="itemFormA" onmouseover="setCursorToNameAct();">
                         <apex:inputHidden id="whiteboardId" value="{!whiteboardId}"/>
                         <div class="modal-header">
-                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
+                            <!-- <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button> -->
                             <h3 id="myModalLabel">New Activity</h3>
                         </div>
                         <div class="modal-body">
-                            <span class="modalLabel">Name:</span><apex:inputField label="Name" value="{!activity.Name}" styleClass="modalActInput modalName"/><br/>
+                            <span class="modalLabel">Name:</span><apex:inputField id="theActName" onblur="checkTheNameAct()" label="Name" value="{!activity.Name}" styleClass="modalActInput modalName"/>
+                            <div id="nameErrorAct" styleClass="modalActInput modalName" style="color:red; display:none">Please Enter a Name for the Activity</div>
+                            
+                            <br/>
                             <span class="modalLabel">Description:</span><apex:inputField label="Description" value="{!activity.Description__c}" styleClass="modalActInput modalDescription"/><br/>
                             
                             <span class="modalLabel">Due Date:</span>
@@ -475,7 +520,7 @@
                             <span class="modalLabel">High Priority:</span><apex:inputCheckbox label="High Priority" value="{!activity.High_Priority__c}" styleClass="modalActInput"/>
                         </div>
                         <div class="modal-footer">
-                            <apex:commandButton styleClass="btn btn-primary" action="{!saveAct}" value="Save" onclick="setWhiteboardId(); checkTheDateAct()"/>
+                            <apex:commandButton styleClass="btn btn-primary" action="{!saveAct}" value="Save" onclick="setWhiteboardId(); checkTheDateAct(); checkTheNameAct();" reRender="wholePage"/>
                             <apex:commandButton styleClass="btn" value="Cancel" action="{!reset}" reRender="wholePage"/>
                         </div>
                     </apex:form>
