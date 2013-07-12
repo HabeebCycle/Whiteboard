@@ -65,7 +65,7 @@ public with sharing class WhiteboardController {
         getUserForFilter();
         AllUsers = new List<User>();
         assignedUser = null; 
-        searchValue = '';    
+        searchValue = '';  
     }
     
 ///////Side bar methods//////////       
@@ -876,7 +876,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
     // ************************ SAVING ITEMS AND ACTIVITIES ****************************************************************
     
     public void save() {
-        System.debug('Entered global save');			                
+        System.debug('Entered global save');			                                
         
         if(indicator)  {
            saveCompany(); 
@@ -1072,9 +1072,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
         ApexPages.currentpage().getParameters().put('ActId', act.Id);
         controller.deleteAct();
         controller.getPersonalWhiteboard();
-        
-        
-        
+             
         
         
         //System.assertEquals(null, controller.deleteItem());
