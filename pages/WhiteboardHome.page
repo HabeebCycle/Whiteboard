@@ -65,8 +65,31 @@
 
         }
     </script>
-
-
+    
+    <apex:outputPanel >
+    <script type="text/javascript">
+    function checkTheDate() {
+        var theItemDate = document.getElementById('thePage:itemFormC:theDueDate').value;             
+        
+        if(theItemDate == '')
+            {return true;}
+        
+        //Do a regex on the date                 
+        var testResult = /^(((((((0?[13578])|(1[02]))[\/]?((0?[1-9])|([12]\d)|(3[01])))|(((0?[469])|(11))[\/]?((0?[1-9])|([12]\d)|(30)))|((0?2)[\/]?((0?[1-9])|(1\d)|(2[0-8]))))[\/]?(((19)|(20))?([\d][\d]))))|((0?2)[\/]?(29)[\/]?(((19)|(20))?(([02468][048])|([13579][26])))))$/.test(theItemDate);
+        
+        //Display an error message in 'errorDate' id it doesn't fit it.
+        if(!testResult)
+        {
+            //document.getElementById('dateError').innerHTML = 'Please Enter Date with MM/DD/YYYY Format';  
+            document.getElementById('dateError').style.display = 'block';
+			document.getElementById('thePage:itemFormC:theDueDate').value = '';
+            return false;
+        }            
+        return true;
+    }
+    </script>
+    </apex:outputPanel>
+    
     <apex:outputPanel id="jquery">
         <script type="text/javascript">
             var j$ = jQuery.noConflict();
@@ -140,7 +163,7 @@
                         <button href="#myModal" role="button" class="btn btn-primary" data-toggle="modal" data-backdrop="false">New Item</button>
                     </div>
                     <!-- NEW ITEM MODAL -->
-                    <div id="myModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+                    <div id="myModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" >
                         <apex:form id="itemFormC">
                             <div class="modal-header">
                                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
@@ -148,7 +171,12 @@
                             </div>
                             <div class="modal-body">
                                 <span class="modalLabel">Name:</span><apex:inputField label="Name" value="{!Item.Name}" styleClass="modalInput modalActInput modalItemName"/><br/>                                                                
-                                <span class="modalLabel">Due Date:</span><apex:inputField label="DueDate" value="{!Item.Item_Due_Date__c}" styleClass="modalInput modalActInput modalItemDate"/><br/>
+                                <span class="modalLabel">Due Date:</span>
+                                
+                                <apex:inputField id="theDueDate" label="DueDate" value="{!Item.Item_Due_Date__c}" onblur="checkTheDate()" styleClass="modalInput modalActInput modalItemDate"/>
+                                <div id="dateError" styleClass="modalInput modalActInput modalItemDate" style="color:red; display:none">Please Enter Date with MM/DD/YYYY Format</div>
+                                
+                                <br/>
                                 <span class="modalLabel">Assign To:</span>                                                                         
                                       <apex:selectList id="aUser" value="{!assignedUser}" size="1" multiselect="false" styleClass="modalItemAssign">
                                           <apex:selectOptions value="{!UserList}" ></apex:selectOptions> 
@@ -156,7 +184,7 @@
                                 <span class="modalLabel">High Priority:</span><apex:inputCheckbox label="High Priority" value="{!Item.High_Priority__c}" styleClass="modalInput modalItemAssign"/>
                             </div>
                             <div class="modal-footer">
-                                <apex:commandButton styleClass="btn btn-primary" action="{!save}" value="Save" reRender="wholePage"/>
+                                <apex:commandButton styleClass="btn btn-primary" action="{!save}" onclick="checkTheDate()" value="Save" reRender="wholePage"/>  
                                 <apex:commandButton styleClass="btn" value="Cancel" action="{!reset}" reRender="wholePage"/>
                             </div>
                         </apex:form>

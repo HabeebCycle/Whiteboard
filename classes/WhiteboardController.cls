@@ -45,7 +45,7 @@ public with sharing class WhiteboardController {
 
 
     // ************************ SETTING UP CONTROLLER AND POPULATING LISTS ****************************************************************
-
+    
     public WhiteboardController() {
         currentItems = new List<Whiteboard_Item__c>();
         trashItems = new List<Whiteboard_Item__c>();
@@ -65,7 +65,7 @@ public with sharing class WhiteboardController {
         getUserForFilter();
         AllUsers = new List<User>();
         assignedUser = null; 
-        searchValue = '';
+        searchValue = '';    
     }
     
 ///////Side bar methods//////////       
@@ -876,12 +876,13 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
     // ************************ SAVING ITEMS AND ACTIVITIES ****************************************************************
     
     public void save() {
-        System.debug('Entered global save');
+        System.debug('Entered global save');			                
+        
         if(indicator)  {
            saveCompany(); 
         } else {
             savePersonal();
-        }  
+        }                  
     }
     
     
@@ -1027,7 +1028,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
         }
         editIndicator = false;
         return null;
-    }
+    }    
 
     // ********************************************************************************************************************************
     
@@ -1049,7 +1050,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
     @IsTest
     static void testWhiteboardCtrl()
     {
-        WhiteboardController controller = new WhiteboardController();
+        WhiteboardController controller = new WhiteboardController();                
         
         Whiteboard_Item__c item = new Whiteboard_Item__c(Name = 'Item One');
         controller.setItem(item);
@@ -1065,11 +1066,14 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
         controller.setWhiteboardId(item.Id);
         Whiteboard_Item_Activity__c act = new Whiteboard_Item_Activity__c(Name = 'Act One');
         controller.setAct(act);
+        
         controller.saveAct();
         controller.saveActPersonal();
         ApexPages.currentpage().getParameters().put('ActId', act.Id);
         controller.deleteAct();
         controller.getPersonalWhiteboard();
+        
+        
         
         
         
