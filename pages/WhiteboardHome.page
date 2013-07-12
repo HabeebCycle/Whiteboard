@@ -499,7 +499,7 @@
                         <apex:inputHidden id="whiteboardId" value="{!whiteboardId}"/>
                         <div class="modal-header">
                             <!-- <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button> -->
-                            <h3 id="myModalLabel">New Activity</h3>
+                            <h3 id="myModalLabel">{!IF(editIndicator == false, 'New Activity', 'Edit Activity')}</h3>
                         </div>
                         <div class="modal-body">
                             <span class="modalLabel">Name:</span><apex:inputField id="theActName" onblur="checkTheNameAct()" label="Name" value="{!activity.Name}" styleClass="modalActInput modalName"/>
