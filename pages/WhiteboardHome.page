@@ -76,7 +76,7 @@
             
             checkTheDate();
             
-            indicateItemError();
+            keepModalOpen();
             return false;
         }
         else
@@ -110,12 +110,16 @@
             document.getElementById('dateError').style.display = 'inline';
             //document.getElementById('thePage:itemFormC:theDueDate').value = '';
             
-            indicateItemError();
+            keepModalOpen();
             return false;
         } 
         else
         {document.getElementById('dateError').style.display = 'none';}
         return true;
+    }
+        
+    function clearDate() {
+        document.getElementById('thePage:itemFormC:theDueDate').value = '';
     }
     </script>
     </apex:outputPanel>
@@ -139,12 +143,16 @@
             document.getElementById('dateErrorAct').style.display = 'inline';
             //document.getElementById('thePage:itemFormA:theDueDateAct').value = '';
             
-            indicateItemError();
+            keepModalOpen();
             return false;
         }
         else
         {document.getElementById('dateErrorAct').style.display = 'none';}
         return true;
+    }
+            
+    function clearDateAct() {
+    	   document.getElementById('thePage:itemFormA:theDueDateAct').value = ''; 
     }
             
     function checkTheNameAndDateAct() {        
@@ -157,7 +165,7 @@
             
             checkTheDateAct();
             
-            indicateItemError();
+            keepModalOpen();
             return false;
         }
         else
@@ -308,7 +316,7 @@
                             </div>
                             <div class="modal-footer">
                                 <apex:commandButton styleClass="btn btn-primary" action="{!save}" onclick="checkTheNameAndDate();" value="Save" reRender="wholePage"/>  
-                                <apex:commandButton styleClass="btn" value="Cancel" action="{!reset}" reRender="wholePage"/>
+                                <apex:commandButton styleClass="btn" value="Cancel" action="{!reset}" onclick="clearDate()" reRender="wholePage"/>
                             </div>
                         </apex:form>
                     </div>
@@ -529,7 +537,7 @@
                         </div>
                         <div class="modal-footer">
                             <apex:commandButton styleClass="btn btn-primary" action="{!saveAct}" value="Save" onclick="setWhiteboardId(); checkTheNameAndDateAct();" reRender="wholePage"/>
-                            <apex:commandButton styleClass="btn" value="Cancel" action="{!reset}" reRender="wholePage"/>
+                            <apex:commandButton styleClass="btn" value="Cancel" action="{!reset}" onclick="clearDateAct()" reRender="wholePage"/>
                         </div>
                     </apex:form>
                 </div>
