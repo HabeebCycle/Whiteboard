@@ -63,6 +63,13 @@
         <type>Checkbox</type>
     </fields>
     <fields>
+        <fullName>Display__c</fullName>
+        <defaultValue>true</defaultValue>
+        <externalId>false</externalId>
+        <label>Display</label>
+        <type>Checkbox</type>
+    </fields>
+    <fields>
         <fullName>High_Priority__c</fullName>
         <defaultValue>false</defaultValue>
         <externalId>false</externalId>

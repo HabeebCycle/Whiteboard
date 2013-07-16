@@ -246,9 +246,9 @@
                     </div>
                     <apex:form >                            
                         <apex:inputText value="{!searchValue}" id="theSearchInput" title="Search the Whiteboard" styleClass="searchBox">
-                            <apex:actionsupport event="onkeydown" action="{!filter}" rerender="wholePage"/>
-                            <apex:actionsupport event="onkeyup" action="{!filter}" rerender="wholePage"/> 
                         </apex:inputText>
+                        <apex:commandButton styleClass="btn" action="{!filter}" value="Search" reRender="wholePage" style="margin-top: 5px;"/>
+
                        <div class="heading">
                            <p>Filter By </p>
                        </div>

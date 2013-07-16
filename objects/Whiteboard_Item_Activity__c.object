@@ -71,6 +71,13 @@
         <type>TextArea</type>
     </fields>
     <fields>
+        <fullName>Display__c</fullName>
+        <defaultValue>true</defaultValue>
+        <externalId>false</externalId>
+        <label>Display</label>
+        <type>Checkbox</type>
+    </fields>
+    <fields>
         <fullName>Due_Date__c</fullName>
         <externalId>false</externalId>
         <label>Due Date</label>
