@@ -27,17 +27,17 @@ public with sharing class WhiteboardController {
     
     public String searchValue { get; set; }        //filter by search bar text
     public String itemOrActivity { get ; set; }     // filter by item or activity
-    public Boolean itemActBool { get; set; } 		// true if item, false if act
-    public String Priority { get; set; }			// filter item by priority
+    public Boolean itemActBool { get; set; }        // true if item, false if act
+    public String Priority { get; set; }            // filter item by priority
     public Boolean priorityBool { get; set; }
-    public String TimeFrame { get; set; } 	        // filter item by time frame   
+    public String TimeFrame { get; set; }           // filter item by time frame   
     public Date startDate { get; set; }
     public Date endDate { get; set; }
 
     public Opportunity o = new Opportunity();
     public Opportunity getProxyObject() { return o; }   
 
-   public List<Whiteboard_Item__c> results { get; set; }		// holds final filter results
+   public List<Whiteboard_Item__c> results { get; set; }        // holds final filter results
    public List<Whiteboard_Item__c> listResults {get; set; }     //holds initial filter results as a list
     
     public Boolean editIndicator {get; set;}
@@ -124,16 +124,16 @@ public with sharing class WhiteboardController {
         }
         
         if (itemOrActivity == 'ITEM') {
-         	itemActBool = true;   
+            itemActBool = true;   
         } else if (itemOrActivity == 'ACTIVITY') {
-         	itemActBool = false;   
+            itemActBool = false;   
         } else {
-         	itemActBool = null;   
+            itemActBool = null;   
         }
         
 
   if(TimeFrame == 'NONE') {
-	startDate = null;
+    startDate = null;
       endDate = null;
   } else if (TimeFrame == 'TODAY') {
     startDate = Date.today();
@@ -161,30 +161,30 @@ public with sharing class WhiteboardController {
     
 public void addToResults(List<Whiteboard_Item__c> inList) {
     List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
-	System.debug('List coming in to compare: ' + inList);
-	if (results.size() == 0) {
-		results.addAll(inList);
+    System.debug('List coming in to compare: ' + inList);
+    if (results.size() == 0) {
+        results.addAll(inList);
         System.debug('Final result list: ' + results);
         currentItems = results;
         return;
-	} else {
-		for(Whiteboard_Item__c item1 : currentItems) {
-			Integer location = -1;
-			List<Whiteboard_Item_Activity__c> activities = new List<Whiteboard_Item_Activity__c>();
-			for(Integer item2 = 0; item2 < inList.size(); item2++) {
-				if(item1.id == inList.get(item2).id) {
-					location = item2;
-					for(Whiteboard_Item_Activity__c act1: item1.Whiteboard_Item_Activities__r){
-						for(Whiteboard_Item_Activity__c act2: inList.get(item2).Whiteboard_Item_Activities__r){
-							if(act1.id == act2.id){
-								activities.add(act1);
-							}
-						}
-					}
-				}
-			}
-			if (location != -1) {
-				Whiteboard_Item__c toAdd = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c,
+    } else {
+        for(Whiteboard_Item__c item1 : currentItems) {
+            Integer location = -1;
+            List<Whiteboard_Item_Activity__c> activities = new List<Whiteboard_Item_Activity__c>();
+            for(Integer item2 = 0; item2 < inList.size(); item2++) {
+                if(item1.id == inList.get(item2).id) {
+                    location = item2;
+                    for(Whiteboard_Item_Activity__c act1: item1.Whiteboard_Item_Activities__r){
+                        for(Whiteboard_Item_Activity__c act2: inList.get(item2).Whiteboard_Item_Activities__r){
+                            if(act1.id == act2.id){
+                                activities.add(act1);
+                            }
+                        }
+                    }
+                }
+            }
+            if (location != -1) {
+                Whiteboard_Item__c toAdd = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c,
                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE Id IN :activities
@@ -194,16 +194,16 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
                       WHERE Id =: inList.get(location).Id
                       ORDER BY High_Priority__c DESC, CreatedDate
                       LIMIT 1]; 
-				Boolean add = checkItem(toAdd);
+                Boolean add = checkItem(toAdd);
                 if (add) {
                     System.debug('To Add: ' + toAdd + ', acts: ' + toAdd.Whiteboard_Item_Activities__r);
                     tempList.add(toAdd);
                 }
-			}
-		}
+            }
+        }
         results.addAll(tempList);
-		currentItems = tempList;
-	}
+        currentItems = tempList;
+    }
 }
     
     public Boolean checkItem(Whiteboard_Item__c item) {
@@ -258,19 +258,19 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
         
         List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
         tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c,
-                   		(SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c
                           FROM Whiteboard_Item_Activities__r
                           WHERE PersonalItem__c !=: indicator AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch)
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
                           LIMIT 30)    
-                   	FROM Whiteboard_Item__c
+                    FROM Whiteboard_Item__c
                     WHERE PersonalItem__c !=: indicator AND Completed__c =: false
                     ORDER BY High_Priority__c DESC, CreatedDate
                     LIMIT 100]; 
 
         addToResults(tempList);
- 		return null;
-	}
+        return null;
+    }
 
     
 
@@ -346,7 +346,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
             }
             addToResults(keep);
             return;
-        }	
+        }   
     }
     
     
@@ -438,7 +438,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
         filterUser = [SELECT Name, LastName, Id, FirstName, Username, Email FROM User];
         filterSelect.add(new SelectOption('', 'None'));
         for (User u : filterUser) {
-        	filterSelect.add(new SelectOption(u.Id, u.Name));
+            filterSelect.add(new SelectOption(u.Id, u.Name));
         }
     }
     
@@ -449,7 +449,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
         
         if(Item.assignedTo__c != null) {
             String userName = [SELECT Name FROM User WHERE Id =: Item.assignedTo__c LIMIT 1].Name;
-        	UserList.add(new SelectOption(Item.assignedTo__c, userName));
+            UserList.add(new SelectOption(Item.assignedTo__c, userName));
         }
         
         UserList.add(new SelectOption('', 'None'));
@@ -458,7 +458,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
         {
             //Only add the name if it is not the same Id as the current User
             if (Item.assignedTo__r.name != '' && temp.Id != Item.assignedTo__c) {
-            	UserList.add(new SelectOption(temp.Id, temp.Name));
+                UserList.add(new SelectOption(temp.Id, temp.Name));
             }
         }
         
@@ -572,14 +572,14 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
     // ************************ DELETING ITEMS AND ACTIVITIES ****************************************************************
 
     public PageReference clearActivity() {
-     	activity = new Whiteboard_Item_Activity__c();
+        activity = new Whiteboard_Item_Activity__c();
         editIndicator = false;
         
         return null;
     }
     
     public PageReference clearItem() {
-     	Item = new Whiteboard_Item__c();
+        Item = new Whiteboard_Item__c();
         editIndicator = false;
         
         return null;
@@ -808,7 +808,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
 
     
     public PageReference editItem() {
-		//Set edit boolean to true
+        //Set edit boolean to true
         editIndicator = true;
         
         List<Whiteboard_Item__c> Items = [SELECT Id, Name, High_Priority__c, Item_Due_Date__c, assignedTo__r.Name from Whiteboard_Item__c where Id = :ApexPages.currentpage().getparameters().get('ItemId')];
@@ -821,7 +821,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
     }
     
     public PageReference editActivity() {
-		//Set edit boolean to true
+        //Set edit boolean to true
         editIndicator = true;
 
         List<Whiteboard_Item_Activity__c> Activities = [SELECT Id, Name, High_Priority__c, Due_Date__c, actAssignedTo__r.Name, Description__c, Completed_Date__c from Whiteboard_Item_Activity__c where Id = :ApexPages.currentpage().getparameters().get('activityId')];
@@ -835,7 +835,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
     }
     
     public PageReference reset() {
-    	editIndicator = false;
+        editIndicator = false;
         Item = new Whiteboard_Item__c();
         activity = new Whiteboard_Item_Activity__c();
         assignedUser = null;
@@ -876,7 +876,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
     // ************************ SAVING ITEMS AND ACTIVITIES ****************************************************************
     
     public void save() {
-        System.debug('Entered global save');			                                
+        System.debug('Entered global save');                                            
         
         if(indicator)  {
            saveCompany(); 
@@ -918,7 +918,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
             
             Item = new Whiteboard_Item__c();
             getUserList();
-			assignedUser = null;
+            assignedUser = null;
             getCompanyItems();         
         }
         catch(Exception ex) {
@@ -940,9 +940,11 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
     }
     
     public PageReference saveActCompany() {
-
+        System.debug('edit indicator : ' + editIndicator);
+        System.debug('whiteboardId : ' + WhiteboardId);
+        System.debug('item name clicked : ' + item.id);
         if (!editIndicator) {
-        	activity.Whiteboard_Item__c = WhiteboardId;
+            activity.Whiteboard_Item__c = WhiteboardId;
         }
         if (activity.Name == '' || activity.Name == null) {
             return null;   
@@ -957,7 +959,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
             
             activity = new Whiteboard_Item_Activity__c();
             getUserList();
-			assignedUser = null;
+            assignedUser = null;
             
             getCompanyItems();
         }                
@@ -969,13 +971,13 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
     }
     
     public PageReference savePersonal() {
-		if (Item.Name == '' || Item.Name == null) {
+        if (Item.Name == '' || Item.Name == null) {
             return null;   
         }
         try {
             Item.PersonalItem__c = true;
             if (assignedUser == '') {
-             	// no user   
+                // no user   
             } else {
                 List<User> users = [SELECT Name, Id FROM User WHERE Id =: assignedUser LIMIT 1];
                 if (users.size() > 0) {
@@ -987,14 +989,14 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
             //If edit boolean is true, update, otherwise insert
             if(editIndicator == true) {
                 Item.assignedTo__c = assignedUser;
-                update Item;            	
+                update Item;                
             } else {
                 insert Item;
             }
             
             Item = new Whiteboard_Item__c();
             getUserList();
-          	assignedUser = null;
+            assignedUser = null;
             getPersonalItems();         
         }
         catch(Exception ex)
@@ -1007,7 +1009,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
     
     public PageReference saveActPersonal() {
         if (!editIndicator) 
-        	activity.Whiteboard_Item__c = WhiteboardId;
+            activity.Whiteboard_Item__c = WhiteboardId;
         if (activity.Name == '' || activity.Name == null) {
             return null;   
         }
