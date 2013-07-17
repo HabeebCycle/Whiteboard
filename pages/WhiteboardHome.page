@@ -247,9 +247,11 @@
                     <apex:form >                            
                         <apex:inputText value="{!searchValue}" id="theSearchInput" title="Search the Whiteboard" styleClass="searchBox">
                         </apex:inputText>
-                        <apex:commandButton styleClass="btn" action="{!filter}" value="Search" reRender="wholePage" style="margin-top: 5px;"/>
+                        <apex:commandButton styleClass="btn btn-primary" action="{!filter}" value="Search" reRender="wholePage" style="margin-top: 10 px; margin-bottom: 25 px"/>
+                        <apex:commandButton styleClass="btn" action="{!clearSearch}" value="Clear" reRender="sidebarPanel, wholePage" style="margin-top: 10 px; margin-bottom: 25 px"/>
 
-                       <div class="heading">
+                       <div class="headingTwo">
+                           <p></p>
                            <p>Filter By </p>
                        </div>
                         <apex:selectList value="{!itemOrActivity}"  size="1" multiselect="false" styleClass="picklistBox">
@@ -260,21 +262,11 @@
                            <apex:actionsupport event="onchange" action="{!filter}" rerender="wholePage"/>
                            <apex:selectOptions value="{!items}"></apex:selectOptions>
                         </apex:selectList><br/>
-                    <div class="timeFrame">
                         <apex:selectList value="{!TimeFrame}"  size="1" multiselect="false" styleClass="picklistBox" title="Filter by"  >
                            <apex:actionsupport event="onchange" action="{!filter}" rerender="wholePage"/>
                            <apex:selectOptions value="{!itemsTwo}"></apex:selectOptions>
                         </apex:selectList><br/>   
-                    </div>
-                    </apex:form>  
-                        <div class="orWord">OR</div>
-                        <div class="specificDate">
-                    <apex:form >
-                        <apex:inputField value="{!proxyObject.closeDate}" id="theDateInput" style="width: 65px" required="false"></apex:inputField><br/>
-                        <apex:commandButton styleClass="btn btn-primary" action="{!filter}" value="Go!" style="margin-top: 5px;"/>
-                        <apex:commandButton styleClass="btn" action="{!clearSearch}" value="Clear Search" reRender="sidebarPanel, wholePage" style="margin-top: 5px;"/>
-                     </apex:form>  
-                        </div>
+                    </apex:form>                      
               </div>
                 </apex:panelGroup> 
                 </apex:outputPanel>
