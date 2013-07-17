@@ -394,7 +394,7 @@
                                                             </apex:commandButton>
                                                             <button href="#myModalAct" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="editActivity('{!act.Id}'); dontHighlightNameBoxAct();" data-placement="top" style="{!IF(act.Completed__c == true, 'display: none !important; ', '')}">✎</button>
                                                             <apex:commandLink styleClass="priority" rendered="{!IF(AND(act.High_Priority__c == true, act.Completed__c == false), true, false)}"  action="{!unsetActPriority}" rerender="curRow">
-                                                                <apex:image url="{!URLFOR($Resource.bootstrap, '/bootstrap/img/priority.png')}" width="25"/>
+                                                                <apex:image url="{!URLFOR($Resource.bootstrap, '/bootstrap/img/priority2.png')}" width="25"/>
                                                                 <apex:param name="ActId" value="{!act.Id}"/>
                                                             </apex:commandLink>
                                                             <apex:commandLink styleClass="priority" rendered="{!IF(AND(act.High_Priority__c == false, act.Completed__c == false), true, false)}" action="{!setActPriority}" rerender="curRow">
