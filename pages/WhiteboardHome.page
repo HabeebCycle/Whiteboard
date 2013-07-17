@@ -14,8 +14,8 @@
     </script>
     
     <script type="text/javascript">
-    	var prev;
-    	var cur;
+        var prev;
+        var cur;
     
         function toggleicons(id) {
             cur = id;
@@ -46,8 +46,8 @@
     </script>
     
         <script type="text/javascript">
-    	var actprev;
-    	var actcur;
+        var actprev;
+        var actcur;
     
         function toggleacticons(id) {
             actcur = id;
@@ -86,8 +86,8 @@
             checkTheDate();
             
             return true;
-		}  
-	}    
+        }  
+    }    
         </script>
     </apex:outputPanel>
         
@@ -155,7 +155,7 @@
     }
             
     function clearDateAct() {
-    	   document.getElementById('thePage:itemFormA:theDueDateAct').value = ''; 
+           document.getElementById('thePage:itemFormA:theDueDateAct').value = ''; 
     }
             
     function checkTheNameAndDateAct() {        
@@ -178,10 +178,10 @@
             checkTheDateAct();
             
             return true;
-		}  
-	}  
-	
-	var myModalOpened = false; 
+        }  
+    }  
+    
+    var myModalOpened = false; 
             
     function dontHighlightNameBox()
         {myModalOpened = true;}
@@ -195,15 +195,15 @@
             document.getElementById('dateError').style.display = 'none';
         }
         
-	function setCursorToName(){        
+    function setCursorToName(){        
         //alert('doNothing function entered');
         if(myModalOpened == false)
-		{document.getElementById('thePage:itemFormC:theItemName').focus();}
+        {document.getElementById('thePage:itemFormC:theItemName').focus();}
         myModalOpened = true;
         return true;    
     }   
 
-	var myModalOpenedAct = false; 
+    var myModalOpenedAct = false; 
     function myModalOpenedActReset()
         {
             myModalOpenedAct = false;
@@ -211,10 +211,10 @@
             document.getElementById('dateErrorAct').style.display = 'none';
         }                
         
-	function setCursorToNameAct(){        
+    function setCursorToNameAct(){        
         //alert('doNothing function entered');
         if(myModalOpenedAct == false)
-		{document.getElementById('thePage:itemFormA:theActName').focus();}
+        {document.getElementById('thePage:itemFormA:theActName').focus();}
         myModalOpenedAct = true;
         return true;    
     }             
@@ -344,10 +344,10 @@
                                                     <apex:param name="ItemId" value="{!item.Id}"/>
                                                 </apex:commandLink>
                                                 <apex:outputPanel rendered="{!IF(item.assignedTo__r.Name != '', true, false)}">
-                                            	<div class="assignedUser">Assigned To: 
+                                                <div class="assignedUser">Assigned To: 
                                                     <apex:outputText value=" {!item.assignedTo__r.Name}"/>                                                
-                                             	</div>
-                                            	</apex:outputPanel>
+                                                </div>
+                                                </apex:outputPanel>
                                                 <apex:outputPanel >
                                                     <div class="itemDate" style="{!IF(item.Past_Due__c == true, 'color: red; font-weight: bold;', '')}">
                                                         <apex:outputText value="{0,date,M'/'dd'/'yyyy}">
@@ -453,7 +453,7 @@
                                                                 <i class="actIconBlank"></i>
                                                             </apex:outputPanel>
                                                             <apex:outputPanel >
-                                                            	<div class="nameLine" style="{!IF(act.Completed__c == true, 'text-decoration: line-through', '')}">{!act.Name}</div>
+                                                                <div class="nameLine" style="{!IF(act.Completed__c == true, 'text-decoration: line-through', '')}">{!act.Name}</div>
                                                             </apex:outputPanel>
                                                         </a>
                                                     </div>
@@ -475,7 +475,7 @@
                                                             <div class="accordion-inner">
                                                                 <ul class="listWrapper">
                                                                     <div class="activityDescription">
-                                                                    	<li>No description specified</li>
+                                                                        <li>No description specified</li>
                                                                     </div>
                                                                 </ul>
                                                             </div>
@@ -588,7 +588,7 @@
                                         </a>
                                     </div>
                                     <div id="{!item.Id}" class="accordion-body collapse">
-                                        	<apex:outputPanel id="trashRow">
+                                            <apex:outputPanel id="trashRow">
                                             <apex:repeat value="{!item.Whiteboard_Item_Activities__r}" var="act" id="actList" rendered="{!IF(item.Whiteboard_Item_Activities__r.size == 0, false, true)}">
                                                 <hr style="margin: 0 0 0 0; padding: 0 0 0 0; border-top: 1px solid #aaaaaa; border-bottom: 1px solid #eeeeee;"/>
                                                 <div class="accordion-inner activityRow" style="margin-left:27px">
@@ -637,7 +637,7 @@
                                                                 <i class="actIconBlank"></i>
                                                             </apex:outputPanel>
                                                             <apex:outputPanel >
-                                                            	<div class="nameLine trashLine">{!act.Name}</div>
+                                                                <div class="nameLine trashLine">{!act.Name}</div>
                                                             </apex:outputPanel>
                                                         </a>
                                                     </div>
@@ -671,7 +671,7 @@
                                                     <!-- END ACCORDION -->
                                                 </div>
                                             </apex:repeat>
-                                        	</apex:outputPanel>
+                                            </apex:outputPanel>
                                             <apex:outputPanel rendered="{!IF(item.Whiteboard_Item_Activities__r.size == 0, true, false)}" >
                                                 <div class="accordion-inner activityRow">
                                                     <!-- ITEM INNER ACCORDION -->
