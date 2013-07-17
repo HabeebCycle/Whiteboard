@@ -1,4 +1,5 @@
-<apex:page standardStylesheets="false" showHeader="true" sidebar="false" controller="WhiteboardController" id="thePage">
+<apex:page showHeader="true" sidebar="false" controller="WhiteboardController" id="thePage">
+<!-- <apex:page standardStylesheets="false" showHeader="true" sidebar="false" controller="WhiteboardController" id="thePage"> -->
     <apex:stylesheet value="{!URLFOR($Resource.bootstrap, '/bootstrap/css/bootstrap.css')}"/>
     <apex:stylesheet value="{!URLFOR($Resource.WBStyles, '/css/newStyle.css')}"/>
     <script src="{!URLFOR($Resource.jQueryLibrary)}"/>
@@ -219,6 +220,12 @@
         return true;    
     }             
             
+    function keepCalendarOpen() {
+        alert('entering keepCalendarOpen function');
+        document.getElementById('datePicker').style.display = 'block';
+        alert('exiting keepCalendarOpen function');
+        }
+            
     function doNothing() {return true;}
     </script>
     </apex:outputPanel>
@@ -234,7 +241,7 @@
             });
         </script>
     </apex:outputPanel>
-
+    
 <div class="container-fluid mainContainer">
         <div class="row-fluid">
             <div class="span2 sidebarClass" style="">
@@ -296,7 +303,7 @@
                         <button href="#myModal" onclick="myModalOpenedReset()" role="button" class="btn btn-primary" data-toggle="modal" data-backdrop="false">New Item</button>
                     </div>
                     <!-- NEW ITEM MODAL -->
-                    <div id="myModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" >
+                    <div id="myModal" style="z-index:0;" class="modal hide fade" tabindex="-1" aria-labelledby="myModalLabel" aria-hidden="true" >
                         <apex:form id="itemFormC" onmouseover="setCursorToName();">
                             <div class="modal-header">
                                 <!-- <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button> -->
@@ -306,10 +313,9 @@
                                 <span class="modalLabel">Name:</span><apex:inputField id="theItemName" label="Name" value="{!Item.Name}" styleClass="modalInput modalActInput modalItemName"/>
                                 <div id="nameError" styleClass="modalInput modalActInput modalItemName" style="color:red; display:none">Please Enter a Name for the Item</div>
                                 <br/>                                                                                                
-                                <span class="modalLabel">Due Date:</span>                                
-                                <apex:inputField id="theDueDate" label="DueDate" value="{!Item.Item_Due_Date__c}" styleClass="modalInput modalActInput modalItemDate"/>
-                                <div id="dateError" styleClass="modalInput modalActInput modalItemDate" style="color:red; display:none">Please Enter Date in MM/DD/YYYY Format</div>
-                                
+                                <span class="modalLabel">Due Date:</span>                                                                  
+                                <apex:inputField id="theDueDate" label="DueDate" value="{!Item.Item_Due_Date__c}" styleClass="modalInput modalActInput modalItemDate"/>                                                                
+                                <div id="dateError" styleClass="modalInput modalActInput modalItemDate" style="color:red; display:none">Please Enter a Valid or Blank Date</div>                                
                                 <br/>
                                 <span class="modalLabel">Assign To:</span>                                                                         
                                       <apex:selectList id="aUser" value="{!assignedUser}" size="1" multiselect="false" styleClass="modalItemAssign">
@@ -513,7 +519,7 @@
                 </apex:outputPanel> <!-- Ends the list of Items -->
     
                 <!-- NEW Activity MODAL -->
-                <div id="myModalAct" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+                <div id="myModalAct" style="z-index:99" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
                     <apex:form id="itemFormA" onmouseover="setCursorToNameAct();">
                         <apex:inputHidden id="whiteboardId" value="{!whiteboardId}"/>
                         <div class="modal-header">
