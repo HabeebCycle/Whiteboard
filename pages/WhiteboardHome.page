@@ -98,7 +98,10 @@
         var theItemDate = document.getElementById('thePage:itemFormC:theDueDate').value;             
         
         if(theItemDate == '')
-            {return true;}
+            {
+                document.getElementById('dateError').style.display = 'none';
+                return true;
+            }
         
         //Do a regex on the date                 
         //var testResult = /^(((((((0?[13578])|(1[02]))[\/]?((0?[1-9])|([12]\d)|(3[01])))|(((0?[469])|(11))[\/]?((0?[1-9])|([12]\d)|(30)))|((0?2)[\/]?((0?[1-9])|(1\d)|(2[0-8]))))[\/]?(((19)|(20))?([\d][\d]))))|((0?2)[\/]?(29)[\/]?(((19)|(20))?(([02468][048])|([13579][26])))))$/.test(theItemDate);
@@ -133,7 +136,10 @@
         var theActDate = document.getElementById('thePage:itemFormA:theDueDateAct').value;             
         
         if(theActDate == '')
-            {return true;}
+            {
+                document.getElementById('dateErrorAct').style.display = 'none';
+                return true;
+            }
         
         //Do a regex on the date                 
         //var testResult = /^(((((((0?[13578])|(1[02]))[\/]?((0?[1-9])|([12]\d)|(3[01])))|(((0?[469])|(11))[\/]?((0?[1-9])|([12]\d)|(30)))|((0?2)[\/]?((0?[1-9])|(1\d)|(2[0-8]))))[\/]?(((19)|(20))?([\d][\d]))))|((0?2)[\/]?(29)[\/]?(((19)|(20))?(([02468][048])|([13579][26])))))$/.test(theActDate);
@@ -188,6 +194,16 @@
         {myModalOpened = true;}
     function dontHighlightNameBoxAct()
         {myModalOpenedAct = true;}
+    
+    function openMyModal()
+        {                     
+            document.getElementById('myModal').style.visibility = 'visible';   
+        }
+
+    function openMyModalAct()
+        {                     
+            document.getElementById('myModalAct').style.visibility = 'visible';   
+        }            
             
     function myModalOpenedReset()
         {
@@ -292,10 +308,10 @@
                 <div class="row">
                     <div class="span12">
                         <apex:sectionHeader title="{!currentWhiteboard}" id="title"/>
-                        <button href="#myModal" onclick="myModalOpenedReset()" role="button" class="btn btn-primary" data-toggle="modal" data-backdrop="false">New Item</button>
+                        <button onclick="openMyModal(); myModalOpenedReset()" role="button" class="btn btn-primary" data-toggle="modal" data-backdrop="false">New Item</button>
                     </div>
                     <!-- NEW ITEM MODAL -->
-                    <div id="myModal" style="z-index:0;" class="modal hide fade" tabindex="-1" aria-labelledby="myModalLabel" aria-hidden="true" >
+                    <div id="myModal" style="z-index:99;" class="modal invisible" tabindex="-1" aria-labelledby="myModalLabel" aria-hidden="true" >
                         <apex:form id="itemFormC" onmouseover="setCursorToName();">
                             <div class="modal-header">
                                 <!-- <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button> -->
@@ -307,7 +323,7 @@
                                 <br/>                                                                                                
                                 <span class="modalLabel">Due Date:</span>                                                                  
                                 <apex:inputField id="theDueDate" label="DueDate" value="{!Item.Item_Due_Date__c}" styleClass="modalInput modalActInput modalItemDate"/>                                                                
-                                <div id="dateError" styleClass="modalInput modalActInput modalItemDate" style="color:red; display:none">Please Enter a Valid or Blank Date</div>                                
+                                <div id="dateError" styleClass="modalInput modalActInput modalItemDate" style="color:red; display:none">Please Enter a Valid Date or Leave Blank</div>                                
                                 <br/>
                                 <span class="modalLabel">Assign To:</span>                                                                         
                                       <apex:selectList id="aUser" value="{!assignedUser}" size="1" multiselect="false" styleClass="modalItemAssign">
@@ -339,8 +355,8 @@
                                                 <apex:commandButton alt="tooltip" title="Click to delete" action="{!deleteItem}" value="✖" id="delete" reRender="wholePage" styleClass="close" onclick="if (!confirm('Are you sure you want to delete this item forever?')) {return;};">
                                                     <apex:param name="ItemId" value="{!item.Id}"/>
                                                 </apex:commandButton>
-                                                <button href="#myModal" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="editItem('{!item.Id}'); dontHighlightNameBox();" rel="tooltip" data-placement="top" title="Click to edit">✎</button>
-                                                <button href="#myModalAct" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="itemId='{!item.Id}'; myModalOpenedActReset();" rel="tooltip" data-placement="top" title="Click to add an Activity">✚</button>
+                                                <button role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="openMyModal(); editItem('{!item.Id}'); dontHighlightNameBox();" rel="tooltip" data-placement="top" title="Click to edit">✎</button>
+                                                <button role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="itemId='{!item.Id}'; openMyModalAct(); myModalOpenedActReset();" rel="tooltip" data-placement="top" title="Click to add an Activity">✚</button>
                                                 <apex:commandLink rel="tooltip" title="Click to toggle priority" styleClass="priority" rendered="{!IF(item.High_Priority__c == true, true, false)}"  action="{!unsetPriority}" rerender="wholePage">
                                                     <apex:image url="{!URLFOR($Resource.bootstrap, '/bootstrap/img/priority.png')}" width="25"/>
                                                     <apex:param name="ItemId" value="{!item.Id}"/>
@@ -398,7 +414,7 @@
                                                             <apex:commandButton action="{!deleteAct}" value="✖" id="delete" reRender="curRow" styleClass="{!IF(act.Completed__c == true, 'btn close restoreButton trashButton', 'close')}" onclick="if (!confirm('Are you sure you want to delete this activity forever?')) {return;};">
                                                                 <apex:param name="ActId" value="{!act.Id}"/>
                                                             </apex:commandButton>
-                                                            <button href="#myModalAct" role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="editActivity('{!act.Id}'); dontHighlightNameBoxAct();" data-placement="top" style="{!IF(act.Completed__c == true, 'display: none !important; ', '')}">✎</button>
+                                                            <button role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="openMyModalAct(); editActivity('{!act.Id}'); dontHighlightNameBoxAct();" data-placement="top" style="{!IF(act.Completed__c == true, 'display: none !important; ', '')}">✎</button>
                                                             <apex:commandLink styleClass="priority" rendered="{!IF(AND(act.High_Priority__c == true, act.Completed__c == false), true, false)}"  action="{!unsetActPriority}" rerender="curRow">
                                                                 <apex:image url="{!URLFOR($Resource.bootstrap, '/bootstrap/img/priority2.png')}" width="25"/>
                                                                 <apex:param name="ActId" value="{!act.Id}"/>
@@ -511,7 +527,7 @@
                 </apex:outputPanel> <!-- Ends the list of Items -->
     
                 <!-- NEW Activity MODAL -->
-                <div id="myModalAct" style="z-index:99" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+                <div id="myModalAct" style="z-index:99" class="modal invisible" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
                     <apex:form id="itemFormA" onmouseover="setCursorToNameAct();">
                         <apex:inputHidden id="whiteboardId" value="{!whiteboardId}"/>
                         <div class="modal-header">
@@ -527,7 +543,7 @@
                             
                             <span class="modalLabel">Due Date:</span>
                             <apex:inputField id="theDueDateAct" label="Due Date" value="{!activity.Due_Date__c}" styleClass="modalActInput modalDate"/>
-                            <div id="dateErrorAct" styleClass="modalActInput modalDate" style="color:red; display:none">Please Enter Date in MM/DD/YYYY Format</div>
+                            <div id="dateErrorAct" styleClass="modalActInput modalDate" style="color:red; display:none">Please Enter a Valid Date or Leave Blank</div>
                             
                             <br/>                            
                             <span class="modalLabel">Assign To:</span>   
