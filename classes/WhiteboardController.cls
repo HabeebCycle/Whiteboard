@@ -374,6 +374,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
         for (Whiteboard_Item__c i : items) {
             System.debug('Item: ' + i + ', acts: ' + i.Whiteboard_Item_Activities__r);
         }
+       
         addToResults(items);
     }
     
@@ -410,7 +411,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
                           LIMIT 100];
                           
                           
-    if((itemActBool == false || itemActBool == null) && TimeFrame != 'NONE'){
+    if((itemActBool == false || itemActBool == null)&& PriorityBool == true){
         for (Whiteboard_Item__c i : specialCase) {
           if (i.Whiteboard_Item_Activities__r.size() > 0) {
                 tempList.add(i);
@@ -418,8 +419,6 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
         }
         
         }
-              
-    
         addToResults(tempList);
     }
     
