@@ -934,7 +934,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
         return null;
     }
     
-    public void saveAct() {
+    public void saveAct() {                
         if(indicator)  {
            saveActCompany(); 
         } else {
@@ -945,6 +945,8 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
     public PageReference saveActCompany() {
 
         if (!editIndicator) {
+            //WhiteboardId = 'a01i0000003G06MAAS';
+            
         	activity.Whiteboard_Item__c = WhiteboardId;
         }
         if (activity.Name == '' || activity.Name == null) {

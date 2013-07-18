@@ -9,8 +9,13 @@
         var itemId;
         var j$ = jQuery.noConflict();
         function setWhiteboardId()
-        {
+        {            
             document.getElementById('thePage:itemFormA:whiteboardId').value = itemId;
+        }
+    
+    	function setItemId(theItemId)
+    	{
+         	itemId = theItemId;
         }
     </script>
     
@@ -356,7 +361,7 @@
                                                     <apex:param name="ItemId" value="{!item.Id}"/>
                                                 </apex:commandButton>
                                                 <button role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="openMyModal(); editItem('{!item.Id}'); dontHighlightNameBox();" rel="tooltip" data-placement="top" title="Click to edit">✎</button>
-                                                <button role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="itemId='{!item.Id}'; openMyModalAct(); myModalOpenedActReset();" rel="tooltip" data-placement="top" title="Click to add an Activity">✚</button>
+                                                <button role="button" class="close btn" data-toggle="modal" data-backdrop="false" onclick="setItemId('{!item.Id}'); openMyModalAct(); myModalOpenedActReset();" rel="tooltip" data-placement="top" title="Click to add an Activity">✚</button>
                                                 <apex:commandLink rel="tooltip" title="Click to toggle priority" styleClass="priority" rendered="{!IF(item.High_Priority__c == true, true, false)}"  action="{!unsetPriority}" rerender="wholePage">
                                                     <apex:image url="{!URLFOR($Resource.bootstrap, '/bootstrap/img/priority.png')}" width="25"/>
                                                     <apex:param name="ItemId" value="{!item.Id}"/>
