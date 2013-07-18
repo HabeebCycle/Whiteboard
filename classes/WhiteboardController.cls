@@ -411,7 +411,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
                           LIMIT 100];
                           
                           
-    if((itemActBool == false || itemActBool == null)&& PriorityBool == true){
+    if((itemActBool == false || itemActBool == null)&& priorityBool!=true){
         for (Whiteboard_Item__c i : specialCase) {
           if (i.Whiteboard_Item_Activities__r.size() > 0) {
                 tempList.add(i);
