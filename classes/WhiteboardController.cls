@@ -47,6 +47,9 @@ public with sharing class WhiteboardController {
     // ************************ SETTING UP CONTROLLER AND POPULATING LISTS ****************************************************************
     
     public WhiteboardController() {
+        
+        Apexpages.currentPage().getHeaders().put('X-UA-Compatible', 'IE=edge');
+        
         currentItems = new List<Whiteboard_Item__c>();
         trashItems = new List<Whiteboard_Item__c>();
         completedItems = new List<Whiteboard_Item__c>();
@@ -98,7 +101,7 @@ public with sharing class WhiteboardController {
             return options;
     }
 
-    public PageReference filter() {
+    public PageReference filter() {                
         results.clear();
         
         setFilterBools();
