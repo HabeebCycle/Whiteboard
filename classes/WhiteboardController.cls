@@ -410,7 +410,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
                           LIMIT 100];
                           
                           
-    if(itemActBool == false && TimeFrame != 'NONE'){
+    if((itemActBool == false || itemActBool == null) && TimeFrame != 'NONE'){
         for (Whiteboard_Item__c i : specialCase) {
           if (i.Whiteboard_Item_Activities__r.size() > 0) {
                 tempList.add(i);
