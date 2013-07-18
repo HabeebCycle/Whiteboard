@@ -4,7 +4,6 @@
     <apex:stylesheet value="{!URLFOR($Resource.WBStyles, '/css/newStyle.css')}"/>
     <script src="{!URLFOR($Resource.jQueryLibrary)}"/>
     <script src="{!URLFOR($Resource.bootstrap, '/bootstrap/js/bootstrap.js')}"/>
-    
     <script type="text/javascript">        
         var itemId;
         var j$ = jQuery.noConflict();
@@ -278,7 +277,7 @@
                         <apex:commandButton styleClass="btn btn-primary" action="{!filter}" value="Search" reRender="wholePage" style="margin-top: 10 px; margin-bottom: 25 px"/>
                         <apex:commandButton styleClass="btn" action="{!clearSearch}" value="Clear" reRender="sidebarPanel, wholePage" style="margin-top: 10 px; margin-bottom: 25 px"/>
 
-                       <div class="headingTwo">
+                       <div class="heading">
                            <p></p>
                            <p>Filter By </p>
                        </div>
