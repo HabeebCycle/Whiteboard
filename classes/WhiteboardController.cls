@@ -378,7 +378,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
         addToResults(items);
     }
     
-    public void filterTimeFrame() {
+       public void filterTimeFrame() {
         
         if (startDate == null) {
             addToResults(getAllItems());
@@ -387,12 +387,12 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
         
       List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
       List<Whiteboard_Item__c> specialCase = new List<Whiteboard_Item__c>();
-    
+      
+      if(priorityBool == null){      
         tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
                            (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
                               FROM Whiteboard_Item_Activities__r
-                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate
-                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
                               LIMIT 30)
                           FROM Whiteboard_Item__c
                           WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate
@@ -409,16 +409,66 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
                           WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c > 0
                           ORDER BY High_Priority__c DESC, CreatedDate
                           LIMIT 100];
+    }
+    
+        if(priorityBool == true){  
+    
+        tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: true
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+    
+        specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: true
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c > 0
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+    } 
+    
+    if(priorityBool == false){  
+    
+        tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: false
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+    
+        specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: false
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c > 0
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+    }                                           
                           
-                          
-    if((itemActBool == false || itemActBool == null)&& priorityBool!=true){
+   if(itemActBool == null || itemActBool == false){
         for (Whiteboard_Item__c i : specialCase) {
           if (i.Whiteboard_Item_Activities__r.size() > 0) {
                 tempList.add(i);
             }
         }
-        
         }
+
         addToResults(tempList);
     }
     
