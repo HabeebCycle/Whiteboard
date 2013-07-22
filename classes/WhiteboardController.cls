@@ -117,16 +117,15 @@ public with sharing class WhiteboardController {
         dateSearch();
                
         searchItemsTwo();
-        System.debug('i get here 1');
+        System.debug('I get here 1');
         filterItemsOrActsTwo();
-        System.debug('i get here 2');
+        System.debug('I get here 2');
         filterPriorityTwo();
-        System.debug('i get here 3');
+        System.debug('I get here 3');
         filterTimeFrameTwo();
-        System.debug('i get here 4');
+        System.debug('I get here 4');
         dateSearchTwo();
-        System.debug('i get here 5');
-    
+        System.debug('I get here 5');
     
         return null;
     }
@@ -262,8 +261,12 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
         if (searchValue != '') {
             String databaseSearch = '%' + searchValue + '%';
             Boolean inTitle = false;
+            Boolean inAssignedTo = false;
             inTitle = String.ValueOf(item.Name).containsIgnoreCase(searchValue);
-            if(inTitle == true || item.Whiteboard_Item_Activities__r.size() > 0){
+            if(item.assignedTo__r.Name != null){
+            inAssignedTo = String.ValueOf(item.assignedTo__r.Name).containsIgnoreCase(searchValue);
+            }            
+            if(inTitle == true ||inAssignedTo == true || item.Whiteboard_Item_Activities__r.size() > 0){
                 return true;   
             }
             return false;
@@ -279,7 +282,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
         tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c,
                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c
                           FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c !=: indicator AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch)
+                          WHERE PersonalItem__c !=: indicator AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
                           LIMIT 30)    
                     FROM Whiteboard_Item__c
@@ -602,17 +605,22 @@ public void addToResultsTwo(List<Whiteboard_Item__c> inList) {
     }
     
     public Boolean checkSearchTwo(Whiteboard_Item__c item) {
-        if (searchValue != '') {
+       if (searchValue != '') {
             String databaseSearch = '%' + searchValue + '%';
             Boolean inTitle = false;
+            Boolean inAssignedTo = false;
             inTitle = String.ValueOf(item.Name).containsIgnoreCase(searchValue);
-            if(inTitle == true || item.Whiteboard_Item_Activities__r.size() > 0){
+            if(item.assignedTo__r.Name != null){
+            inAssignedTo = String.ValueOf(item.assignedTo__r.Name).containsIgnoreCase(searchValue);
+            }            
+            if(inTitle == true ||inAssignedTo == true || item.Whiteboard_Item_Activities__r.size() > 0){
                 return true;   
             }
             return false;
         }
         return true;
     }
+    
     
     public PageReference searchItemsTwo(){//When you type in the search bar, this method is called
    
@@ -622,7 +630,7 @@ public void addToResultsTwo(List<Whiteboard_Item__c> inList) {
         tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c, Completed_Date__c,
                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c
                           FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c !=: indicator AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch)
+                          WHERE PersonalItem__c !=: indicator AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
                           ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
                           LIMIT 30)    
                     FROM Whiteboard_Item__c
