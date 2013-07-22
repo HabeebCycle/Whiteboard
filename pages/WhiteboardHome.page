@@ -191,6 +191,17 @@
             return true;
         }  
     }  
+            
+    function checkDescLength() 
+    {        
+    	var lengthF = document.getElementById('thePage:itemFormA:theActDescription').value;               
+
+    	if (lengthF.length > 255){
+            alert('Description must be 255 characters or less');
+            lengthF = lengthF.substring(0,255);
+            document.getElementById('thePage:itemFormA:theActDescription').value = lengthF;
+    	}               
+    }
     
     var myModalOpened = false; 
             
@@ -244,7 +255,7 @@
         alert('entering keepCalendarOpen function');
         document.getElementById('datePicker').style.display = 'block';
         alert('exiting keepCalendarOpen function');
-        }
+        }           
             
     function doNothing() {return true;}
     </script>
@@ -543,7 +554,7 @@
                             <div id="nameErrorAct" styleClass="modalActInput modalName" style="color:red; display:none">Please Enter a Name for the Activity</div>
                             
                             <br/>
-                            <span class="modalLabel">Description:</span><apex:inputField label="Description" value="{!activity.Description__c}" styleClass="modalActInput modalDescription"/><br/>
+                            <span class="modalLabel">Description:</span><apex:inputField id="theActDescription" label="Description" value="{!activity.Description__c}" onkeyup="checkDescLength()" styleClass="modalActInput modalDescription"/><br/>
                             
                             <span class="modalLabel">Due Date:</span>
                             <apex:inputField id="theDueDateAct" label="Due Date" value="{!activity.Due_Date__c}" styleClass="modalActInput modalDate"/>
