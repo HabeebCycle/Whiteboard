@@ -338,7 +338,7 @@
                                 <br/>                                                                                                
                                 <span class="modalLabel">Due Date:</span>                                                                  
                                 <apex:inputField id="theDueDate" label="DueDate" value="{!Item.Item_Due_Date__c}" styleClass="modalInput modalActInput modalItemDate"/>                                                                
-                                <div id="dateError" styleClass="modalInput modalActInput modalItemDate" style="color:red; display:none">Please Enter a Valid Date or Leave Blank</div>                                
+                                <div id="dateError" styleClass="modalInput modalActInput modalItemDate" style="color:red; display:none">Use MM/DD/YYYY Format or Leave Blank</div>                                
                                 <br/>
                                 <span class="modalLabel">Assign To:</span>                                                                         
                                       <apex:selectList id="aUser" value="{!assignedUser}" size="1" multiselect="false" styleClass="modalItemAssign">
@@ -558,7 +558,7 @@
                             
                             <span class="modalLabel">Due Date:</span>
                             <apex:inputField id="theDueDateAct" label="Due Date" value="{!activity.Due_Date__c}" styleClass="modalActInput modalDate"/>
-                            <div id="dateErrorAct" styleClass="modalActInput modalDate" style="color:red; display:none">Please Enter a Valid Date or Leave Blank</div>
+                            <div id="dateErrorAct" styleClass="modalActInput modalDate" style="color:red; display:none">Use MM/DD/YYYY Format or Leave Blank</div>
                             
                             <br/>                            
                             <span class="modalLabel">Assign To:</span>   
