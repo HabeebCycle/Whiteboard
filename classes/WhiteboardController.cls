@@ -117,16 +117,11 @@ public with sharing class WhiteboardController {
         dateSearch();
                
         searchItemsTwo();
-        System.debug('I get here 1');
+
         filterItemsOrActsTwo();
-        System.debug('I get here 2');
         filterPriorityTwo();
-        System.debug('I get here 3');
         filterTimeFrameTwo();
-        System.debug('I get here 4');
-        dateSearchTwo();
-        System.debug('I get here 5');
-    
+        dateSearchTwo();    
         return null;
     }
     
@@ -178,10 +173,9 @@ public with sharing class WhiteboardController {
     
 public void addToResults(List<Whiteboard_Item__c> inList) {
     List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
-    System.debug('List coming in to compare: ' + inList);
+    
     if (results.size() == 0) {
         results.addAll(inList);
-        System.debug('Final result list: ' + results);
         currentItems = results;
         return;
     } else {
@@ -213,7 +207,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
                       LIMIT 1]; 
                 Boolean add = checkItem(toAdd);
                 if (add) {
-                    System.debug('To Add: ' + toAdd + ', acts: ' + toAdd.Whiteboard_Item_Activities__r);
+                    
                     tempList.add(toAdd);
                 }
             }
@@ -314,12 +308,9 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
                         ORDER BY High_Priority__c DESC, CreatedDate
                         LIMIT 100]; 
     
-            System.debug('Specific Date Search Results');
-            for (Whiteboard_Item__c i : tempSet) {
-                System.debug('Item: ' + i + ', with acts: ' + i.Whiteboard_Item_Activities__r);   
-            }
+            
             addToResults(tempSet);
-            //System.debug('List sent in to compare: ' + tempSet);
+
             return;
         }
     }
@@ -345,7 +336,6 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
                         LIMIT 100]; 
     
             addToResults(tempSet);
-            //System.debug('List sent in to compare: ' + tempSet);
             return;
     
         } else if (itemOrActivity == 'ACTIVITY') {
@@ -388,11 +378,7 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
         FROM Whiteboard_Item__c
         WHERE PersonalItem__c !=: indicator
         ORDER BY High_Priority__c DESC, CreatedDate];
-    
-        System.debug('PRIORITY FILTER RESULTS');
-        for (Whiteboard_Item__c i : items) {
-            System.debug('Item: ' + i + ', acts: ' + i.Whiteboard_Item_Activities__r);
-        }
+   
        
         addToResults(items);
     }
@@ -525,7 +511,6 @@ public void addToResults(List<Whiteboard_Item__c> inList) {
 
 public void addToResultsTwo(List<Whiteboard_Item__c> inList) {
     List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
-    System.debug('List coming in to compare: ' + inList);
     if (completedResults.size() == 0) {
         completedResults.addAll(inList);
         completedItems = completedResults;
@@ -559,14 +544,12 @@ public void addToResultsTwo(List<Whiteboard_Item__c> inList) {
                       LIMIT 1]; 
                 Boolean add = checkItemTwo(toAdd);
                 if (add) {
-                    System.debug('To Add: ' + toAdd + ', acts: ' + toAdd.Whiteboard_Item_Activities__r);
                     tempList.add(toAdd);
                 }
             }
         }
         completedResults.addAll(tempList);
         completedItems = tempList;
-        System.debug('number of completed items' + completedItems.size());
     }
 }
     
@@ -662,12 +645,7 @@ public void addToResultsTwo(List<Whiteboard_Item__c> inList) {
                         ORDER BY High_Priority__c DESC, CreatedDate
                         LIMIT 100]; 
     
-            System.debug('Specific Date Search Results');
-            for (Whiteboard_Item__c i : tempSet) {
-                System.debug('Item: ' + i + ', with acts: ' + i.Whiteboard_Item_Activities__r);   
-            }
             addToResultsTwo(tempSet);
-            //System.debug('List sent in to compare: ' + tempSet);
             return;
         }
     }
@@ -693,7 +671,6 @@ public void addToResultsTwo(List<Whiteboard_Item__c> inList) {
                         LIMIT 100]; 
     
             addToResultsTwo(tempSet);
-            //System.debug('List sent in to compare: ' + tempSet);
             return;
     
         } else if (itemOrActivity == 'ACTIVITY') {
@@ -737,11 +714,6 @@ public void addToResultsTwo(List<Whiteboard_Item__c> inList) {
         WHERE PersonalItem__c !=: indicator
         ORDER BY High_Priority__c DESC, CreatedDate];
     
-        System.debug('PRIORITY FILTER RESULTS');
-        for (Whiteboard_Item__c i : items) {
-            System.debug('Item: ' + i + ', acts: ' + i.Whiteboard_Item_Activities__r);
-        }
-       
         addToResultsTwo(items);
     }
     

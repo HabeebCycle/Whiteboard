@@ -12,9 +12,9 @@
             document.getElementById('thePage:itemFormA:whiteboardId').value = itemId;
         }
     
-    	function setItemId(theItemId)
-    	{
-         	itemId = theItemId;
+        function setItemId(theItemId)
+        {
+            itemId = theItemId;
         }
     </script>
     
@@ -194,13 +194,13 @@
             
     function checkDescLength() 
     {        
-    	var lengthF = document.getElementById('thePage:itemFormA:theActDescription').value;               
+        var lengthF = document.getElementById('thePage:itemFormA:theActDescription').value;               
 
-    	if (lengthF.length > 255){
+        if (lengthF.length > 255){
             alert('Description must be 255 characters or less');
             lengthF = lengthF.substring(0,255);
             document.getElementById('thePage:itemFormA:theActDescription').value = lengthF;
-    	}               
+        }               
     }
     
     var myModalOpened = false; 
@@ -280,9 +280,20 @@
                 <apex:panelGroup id="sidebar" style="margin-top=10px" >
                     <div style="position:relative;top:5px;">
                      <div class="heading">
-                           <p>Search </p>
+                           
+                           <apex:form >
+                           <p>Search 
+                           <apex:commandLink rel="tooltip" title="Looks in 'item', 'activity', and 'assigned to' names for specific search words. Works alongside the filter boxes below.">
+                               <apex:image url="{!URLFOR($Resource.bootstrap, '/bootstrap/img/helpbutton.png')}" width="25"/>
+                           </apex:commandLink> 
+                            </p>                          
+                           </apex:form>
+                           
+                          
                     </div>
-                    <apex:form >                            
+                    
+                    <apex:form >
+                                                
                         <apex:inputText value="{!searchValue}" id="theSearchInput" title="Search the Whiteboard" styleClass="searchBox">
                         </apex:inputText>
                         <apex:commandButton styleClass="btn btn-primary" action="{!filter}" value="Search" reRender="wholePage" style="margin-top: 10 px; margin-bottom: 25 px"/>
