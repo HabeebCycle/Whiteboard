@@ -849,19 +849,15 @@ public void addToResultsTwo(List<Whiteboard_Item__c> inList) {
     
     public void setBoardTitle(Boolean board) {
         if (board) {     
-            companyName = [SELECT Name FROM Organization LIMIT 1].Name;
-            if (companyName == null || companyName == '') {
+            //companyName = [SELECT Name FROM Organization LIMIT 1].Name;
+           
                 currentWhiteboard = 'Company Whiteboard';
-             } else {
-                currentWhiteboard = companyName + ' Whiteboard';    
-             }
+            
         } else {
-            userName = [SELECT Id, Name FROM User WHERE Id =: UserInfo.getUserId()].Name;
-            if (userName == null || userName == '') {
+            //userName = [SELECT Id, Name FROM User WHERE Id =: UserInfo.getUserId()].Name;
+          
                 currentWhiteboard = 'Personal Whiteboard';
-            } else {
-                currentWhiteboard = userName + '\'s Whiteboard';
-            }
+            
         }
     }
     

@@ -284,7 +284,7 @@
                            <apex:form >
                            <p>Search 
                            <apex:commandLink rel="tooltip" title="Looks in 'item', 'activity', and 'assigned to' names for specific search words. Works alongside the filter boxes below.">
-                               <apex:image url="{!URLFOR($Resource.bootstrap, '/bootstrap/img/helpbutton.png')}" width="25"/>
+                               <apex:image url="{!URLFOR($Resource.bootstrap, '/bootstrap/img/helpbutton2.png')}" width="25"/>
                            </apex:commandLink> 
                             </p>                          
                            </apex:form>
