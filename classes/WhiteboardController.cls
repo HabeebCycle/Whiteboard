@@ -34,8 +34,7 @@ public with sharing class WhiteboardController {
     public Date startDate { get; set; }
     public Date endDate { get; set; }
 
-    public Opportunity o = new Opportunity();
-    public Opportunity getProxyObject() { return o; }   
+    public Opportunity o = new Opportunity();   
 
    public List<Whiteboard_Item__c> results { get; set; }        // holds final filter results
    public List<Whiteboard_Item__c> listResults {get; set; }     //holds initial filter results as a list
@@ -72,809 +71,11 @@ public with sharing class WhiteboardController {
         getUserForFilter();
         AllUsers = new List<User>();
         assignedUser = null; 
-        searchValue = '';  
-    }
-    
-///////Side bar methods//////////       
-    public List<SelectOption> getItemTask(){ //creates selection options for item v. task select list
-         List<SelectOption> options = new List<SelectOption>();
-            options.add(new SelectOption('NONE', '--Type--'));
-            options.add(new SelectOption('ITEM', 'Items'));
-            options.add(new SelectOption('ACTIVITY','Activities'));
-            return options;
-    }
-
-   public List<SelectOption> getItems() { //creates selection options for priorities
-            List<SelectOption> options = new List<SelectOption>();
-            options.add(new SelectOption('NONE', '--Priority--'));
-            options.add(new SelectOption('HIGH','High Priority'));
-            options.add(new SelectOption('NOPRIORITY','No Priority'));
-            return options;
-    }
-          
-    public List<SelectOption> getItemsTwo() { //creates selection options for date selectList
-            List<SelectOption> options = new List<SelectOption>();
-            options.add(new SelectOption('NONE', '--Due Date--'));
-            options.add(new SelectOption('TODAY', 'Today'));
-            options.add(new SelectOption('TOMORROW', 'Tomorrow'));
-            options.add(new SelectOption('THISWEEK','This Week'));
-            options.add(new SelectOption('NEXTWEEK','Next Week'));
-            options.add(new SelectOption('THISMONTH','This Month'));
-            options.add(new SelectOption('NEXTMONTH','Next Month'));
-            options.add(new SelectOption('PAST', 'Past Due'));
-            return options;
-    }
-
-    public PageReference filter() {
-    
-                    
-        results.clear();
-        completedResults.clear();        
-        setFilterBools();
-        
-        getPersonalOrCompany();
-        searchItems();
-        filterItemsOrActs();
-        filterPriority();
-        filterTimeFrame();
-        dateSearch();
-        
-        getPersonalOrCompanyTwo();       
-        searchItemsTwo();
-        filterItemsOrActsTwo();
-        filterPriorityTwo();
-        filterTimeFrameTwo();
-        dateSearchTwo();    
-        return null;
-    }
-    
-    public void setFilterBools() {
-        getUserForFilter();
-        
-        if (Priority == 'HIGH') {
-            priorityBool = true;
-        } else if (Priority == 'NOPRIORITY') {
-            priorityBool = false;
-        } else {
-            priorityBool = null;   
-        }
-        
-        if (itemOrActivity == 'ITEM') {
-            itemActBool = true;   
-        } else if (itemOrActivity == 'ACTIVITY') {
-            itemActBool = false;   
-        } else {
-            itemActBool = null;   
-        }
-        
-  if(TimeFrame == 'NONE') {
-    startDate = null;
-    endDate = null;
-  } else if (TimeFrame == 'TODAY') {
-    startDate = Date.today();
-    endDate = Date.today().addDays(1);
-  } else if (TimeFrame == 'TOMORROW') {
-    startDate = Date.today().addDays(1);
-    endDate = Date.today().addDays(2);
-  } else if (TimeFrame == 'THISWEEK') {
-    startDate = Date.today();
-    endDate = Date.today().toStartofWeek().addDays(7);
-  } else if (TimeFrame == 'NEXTWEEK') {
-    startDate = Date.today().toStartofWeek().addDays(7);
-    endDate = startDate.addDays(7);
-  } else if (TimeFrame == 'THISMONTH') {
-    startDate = Date.today();
-    endDate = Date.today().toStartOfMonth().addMonths(1);
-  } else if (TimeFrame == 'NEXTMONTH') {
-    startDate = Date.today().toStartofMonth().addMonths(1);
-    endDate = startDate.addMonths(1);
-  } else if (TimeFrame == 'PAST') {
-    startDate = date.newInstance((Date.today().year() - 10), date.today().month(), (date.today().day() - 1));
-    endDate = date.newInstance(Date.today().year(), date.today().month(), (date.today().day()));
-  }
-}
-    
-public void addToResults(List<Whiteboard_Item__c> inList) {
-    List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
-    
-    if (results.size() == 0) {
-        results.addAll(inList);
-        currentItems = results;
-        return;
-    } else {
-        for(Whiteboard_Item__c item1 : currentItems) {
-            Integer location = -1;
-            List<Whiteboard_Item_Activity__c> activities = new List<Whiteboard_Item_Activity__c>();
-            for(Integer item2 = 0; item2 < inList.size(); item2++) {
-                if(item1.id == inList.get(item2).id) {
-                    location = item2;
-                    for(Whiteboard_Item_Activity__c act1: item1.Whiteboard_Item_Activities__r){
-                        for(Whiteboard_Item_Activity__c act2: inList.get(item2).Whiteboard_Item_Activities__r){
-                            if(act1.id == act2.id){
-                                activities.add(act1);
-                            }
-                        }
-                    }
-                }
-            }
-            if (location != -1) {
-                Whiteboard_Item__c toAdd = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c,
-                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE Id IN :activities
-                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                          LIMIT 30)          
-                      FROM Whiteboard_Item__c
-                      WHERE Id =: inList.get(location).Id
-                      ORDER BY High_Priority__c DESC, CreatedDate
-                      LIMIT 1]; 
-                Boolean add = checkItem(toAdd);
-                if (add) {
-                    
-                    tempList.add(toAdd);
-                }
-            }
-        }
-        results.addAll(tempList);
-        currentItems = tempList;
-    }
-}
-    
-    public Boolean checkItem(Whiteboard_Item__c item) {
-        if (priorityBool != null) {
-            if ((priorityBool == true && item.High_Priority__c == true) || (priorityBool == false && item.High_Priority__c == false) || (priorityBool == false && item.High_Priority__c == true && item.Whiteboard_Item_Activities__r.size() > 0) || (priorityBool == true && item.High_Priority__c == false && item.Whiteboard_Item_Activities__r.size() > 0)) {
-                return checkItemAct(item);
-            }
-        } else {
-            return checkItemAct(item);
-        }
-        return false;
-    }
-    
-    public Boolean checkItemAct(Whiteboard_Item__c item) {
-        if (itemActBool != null) {
-            if (itemActBool == true || (itemActBool == false && item.Whiteboard_Item_Activities__r.size() > 0)) {
-                return checkItemDate(item);   
-            }
-        } else {
-            return checkItemDate(item);
-        }
-        return false;
-    }
-    
-    
-    public Boolean checkItemDate(Whiteboard_Item__c item) {
-        if (o.closeDate != null) {
-            if (item.Item_Due_Date__c == o.closeDate || (item.Whiteboard_Item_Activities__r.size() > 0)) {
-                return checkSearch(item);   
-            }
-        } else {
-            return checkSearch(item);
-        }
-        return false;
-    }
-    
-    public Boolean checkSearch(Whiteboard_Item__c item) {
-        if (searchValue != '') {
-            String databaseSearch = '%' + searchValue + '%';
-            Boolean inTitle = false;
-            Boolean inAssignedTo = false;
-            inTitle = String.ValueOf(item.Name).containsIgnoreCase(searchValue);
-            if(item.assignedTo__r.Name != null){
-            inAssignedTo = String.ValueOf(item.assignedTo__r.Name).containsIgnoreCase(searchValue);
-            }            
-            if(inTitle == true ||inAssignedTo == true || item.Whiteboard_Item_Activities__r.size() > 0){
-                return true;   
-            }
-            return false;
-        }
-        return true;
-    }
-    
-    
-    public void getPersonalOrCompany() {
-    
-    
-    if(indicator == false){
-    List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
-    tempList = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Completed_Date__c, Item_Due_Date__c, Past_Due__c,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
-                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                          LIMIT 30)
-                      FROM Whiteboard_Item__c
-                      WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true AND Completed__c =: false
-                      ORDER BY High_Priority__c DESC, CreatedDate
-                      LIMIT 100];
-    addToResults(tempList);
-    
-    }
-    
-    }
-    
-    public PageReference searchItems(){//When you type in the search bar, this method is called
-   
-        String databaseSearch = '%' + searchValue + '%';
-        
-        List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
-        tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c,
-                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c !=: indicator AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
-                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                          LIMIT 30)    
-                    FROM Whiteboard_Item__c
-                    WHERE PersonalItem__c !=: indicator AND Completed__c =: false
-                    ORDER BY High_Priority__c DESC, CreatedDate
-                    LIMIT 100]; 
-
-        addToResults(tempList);
-        return null;
-    }
-
-    
-
-    public void dateSearch() {  //Used when a specific date is entered in the sidebar
-        List<Whiteboard_Item__c> tempSet = new List<Whiteboard_Item__c>();
-        
-        if (o.closeDate == null) {
-            addToResults(getAllItems());
-            return;
-        } else {
-            tempSet = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c,
-                            (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
-                              FROM Whiteboard_Item_Activities__r
-                              WHERE PersonalItem__c !=: indicator AND Due_Date__c =: o.closeDate
-                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                              LIMIT 30)    
-                        FROM Whiteboard_Item__c
-                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false
-                        ORDER BY High_Priority__c DESC, CreatedDate
-                        LIMIT 100]; 
-    
-            
-            addToResults(tempSet);
-
-            return;
-        }
-    }
-
-    public void filterItemsOrActs() {
-    
-      List<Whiteboard_Item__c> tempSet = new List<Whiteboard_Item__c>();
-      List<Whiteboard_Item__c> specialCase = new List<Whiteboard_Item__c>();
-    
-        if (itemOrActivity == 'NONE') {
-            addToResults(getAllItems());
-            return;
-        } else if (itemOrActivity == 'ITEM') {
-            tempSet = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c,
-                            (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
-                              FROM Whiteboard_Item_Activities__r
-                              WHERE PersonalItem__c !=: indicator AND id =: 'xct345'
-                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                              LIMIT 30)    
-                        FROM Whiteboard_Item__c
-                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false
-                        ORDER BY High_Priority__c DESC, CreatedDate
-                        LIMIT 100]; 
-    
-            addToResults(tempSet);
-            return;
-    
-        } else if (itemOrActivity == 'ACTIVITY') {
-            tempSet = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c,
-                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
-                              FROM Whiteboard_Item_Activities__r
-                              WHERE PersonalItem__c !=: indicator
-                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                              LIMIT 30)
-                          FROM Whiteboard_Item__c
-                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c >: 0
-                          ORDER BY High_Priority__c DESC, CreatedDate
-                          LIMIT 100];
-        
-            List<Whiteboard_Item__c> keep = new List<Whiteboard_Item__c>(); 
-            for (Whiteboard_Item__c i : tempSet) {
-                if (i.Whiteboard_Item_Activities__r.size() != 0) {
-                    keep.add(i);
-                }
-            }
-            addToResults(keep);
-            return;
-        }   
-    }
-    
-    
-    
-    public void filterPriority() {
-        if (Priority == 'NONE') {
-            addToResults(getAllItems());
-            return;
-        }
-    
-        List<Whiteboard_Item__c> items = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Completed_Date__c, Item_Due_Date__c, Past_Due__c,
-            (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
-             FROM Whiteboard_Item_Activities__r
-             WHERE High_Priority__c =: priorityBool AND PersonalItem__c !=: indicator
-             ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-             LIMIT 30)
-        FROM Whiteboard_Item__c
-        WHERE PersonalItem__c !=: indicator
-        ORDER BY High_Priority__c DESC, CreatedDate];
-   
-       
-        addToResults(items);
-    }
-    
-       public void filterTimeFrame() {
-        
-        if (startDate == null) {
-            addToResults(getAllItems());
-            return;
-        }
-        
-      List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
-      List<Whiteboard_Item__c> specialCase = new List<Whiteboard_Item__c>();
-      
-      if(priorityBool == null){      
-        tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
-                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
-                              FROM Whiteboard_Item_Activities__r
-                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                              LIMIT 30)
-                          FROM Whiteboard_Item__c
-                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate
-                          ORDER BY High_Priority__c DESC, CreatedDate
-                          LIMIT 100];
-    
-        specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
-                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
-                              FROM Whiteboard_Item_Activities__r
-                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate
-                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                              LIMIT 30)
-                          FROM Whiteboard_Item__c
-                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c > 0
-                          ORDER BY High_Priority__c DESC, CreatedDate
-                          LIMIT 100];
-    }
-    
-        if(priorityBool == true){  
-    
-        tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
-                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
-                              FROM Whiteboard_Item_Activities__r
-                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: true
-                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                              LIMIT 30)
-                          FROM Whiteboard_Item__c
-                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate
-                          ORDER BY High_Priority__c DESC, CreatedDate
-                          LIMIT 100];
-    
-        specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
-                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
-                              FROM Whiteboard_Item_Activities__r
-                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: true
-                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                              LIMIT 30)
-                          FROM Whiteboard_Item__c
-                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c > 0
-                          ORDER BY High_Priority__c DESC, CreatedDate
-                          LIMIT 100];
-    } 
-    
-    if(priorityBool == false){  
-    
-        tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
-                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
-                              FROM Whiteboard_Item_Activities__r
-                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: false
-                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                              LIMIT 30)
-                          FROM Whiteboard_Item__c
-                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate
-                          ORDER BY High_Priority__c DESC, CreatedDate
-                          LIMIT 100];
-    
-        specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,
-                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
-                              FROM Whiteboard_Item_Activities__r
-                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: false
-                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                              LIMIT 30)
-                          FROM Whiteboard_Item__c
-                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c > 0
-                          ORDER BY High_Priority__c DESC, CreatedDate
-                          LIMIT 100];
-    }                                           
-                          
-   if(itemActBool == null || itemActBool == false){
-        for (Whiteboard_Item__c i : specialCase) {
-          if (i.Whiteboard_Item_Activities__r.size() > 0) {
-                tempList.add(i);
-            }
-        }
-        }
-
-        addToResults(tempList);
-    }
-    
-    public PageReference clearSearch() {
-
-        itemOrActivity = 'NONE';
-        itemActBool = null;
-        Priority = 'NONE';
-        priorityBool = null;
-        TimeFrame = 'NONE';
-        startDate = null;
-        endDate = null;
-        o.closeDate = null;
         searchValue = '';
-        currentItems = getAllItems();
-        completedItems = getAllCompletedItems();
-        
-        return null;
-    }
-
-//////additional search bar code to allow for filtering completedItems    
- public List<Whiteboard_Item__c> getAllCompletedItems() {
-    List<Whiteboard_Item__c> allItems = new List<Whiteboard_Item__c>();
-    if(indicator == true){
-        allItems =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
-                       (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c !=: indicator
-                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                          LIMIT 30)
-                      FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c !=: indicator AND Completed__c =: true
-                      ORDER BY High_Priority__c DESC, CreatedDate
-                      LIMIT 100];
-    }else if(indicator == false){
-            allitems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Completed_Date__c, Item_Due_Date__c, Past_Due__c,
-                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
-                            FROM Whiteboard_Item_Activities__r
-                            WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
-                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                            LIMIT 30)
-                        FROM Whiteboard_Item__c
-                        WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true AND Completed__c =: true
-                        ORDER BY High_Priority__c DESC, CreatedDate
-                        LIMIT 100];
-    }
-return allItems;
-    }
-
-public void addToResultsTwo(List<Whiteboard_Item__c> inList) {
-    List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
-    if (completedResults.size() == 0) {
-        completedResults.addAll(inList);
-        completedItems = completedResults;
-        return;
-    } else {
-        for(Whiteboard_Item__c item1 : completedItems) {
-            Integer location = -1;
-            List<Whiteboard_Item_Activity__c> activities = new List<Whiteboard_Item_Activity__c>();
-            for(Integer item2 = 0; item2 < inList.size(); item2++) {
-                if(item1.id == inList.get(item2).id) {
-                    location = item2;
-                    for(Whiteboard_Item_Activity__c act1: item1.Whiteboard_Item_Activities__r){
-                        for(Whiteboard_Item_Activity__c act2: inList.get(item2).Whiteboard_Item_Activities__r){
-                            if(act1.id == act2.id){
-                                activities.add(act1);
-                            }
-                        }
-                    }
-                }
-            }
-            if (location != -1) {
-                Whiteboard_Item__c toAdd = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c, Completed_Date__c,
-                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE Id IN :activities
-                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                          LIMIT 30)          
-                      FROM Whiteboard_Item__c
-                      WHERE Id =: inList.get(location).Id
-                      ORDER BY High_Priority__c DESC, CreatedDate
-                      LIMIT 1]; 
-                Boolean add = checkItemTwo(toAdd);
-                if (add) {
-                    tempList.add(toAdd);
-                }
-            }
-        }
-        completedResults.addAll(tempList);
-        completedItems = tempList;
-    }
-}
-    
-    public Boolean checkItemTwo(Whiteboard_Item__c item) {
-        if (priorityBool != null) {
-            if ((priorityBool == true && item.High_Priority__c == true) || (priorityBool == false && item.High_Priority__c == false) || (priorityBool == false && item.High_Priority__c == true && item.Whiteboard_Item_Activities__r.size() > 0) || (priorityBool == true && item.High_Priority__c == false && item.Whiteboard_Item_Activities__r.size() > 0)) {
-                return checkItemActTwo(item);
-            }
-        } else {
-            return checkItemActTwo(item);
-        }
-        return false;
-    }
-    
-    public Boolean checkItemActTwo(Whiteboard_Item__c item) {
-        if (itemActBool != null) {
-            if (itemActBool == true || (itemActBool == false && item.Whiteboard_Item_Activities__r.size() > 0)) {
-                return checkItemDateTwo(item);   
-            }
-        } else {
-            return checkItemDateTwo(item);
-        }
-        return false;
-    }
-    
-    
-    public Boolean checkItemDateTwo(Whiteboard_Item__c item) {
-        if (o.closeDate != null) {
-            if (item.Item_Due_Date__c == o.closeDate || (item.Whiteboard_Item_Activities__r.size() > 0)) {
-                return checkSearchTwo(item);   
-            }
-        } else {
-            return checkSearchTwo(item);
-        }
-        return false;
-    }
-    
-    public Boolean checkSearchTwo(Whiteboard_Item__c item) {
-       if (searchValue != '') {
-            String databaseSearch = '%' + searchValue + '%';
-            Boolean inTitle = false;
-            Boolean inAssignedTo = false;
-            inTitle = String.ValueOf(item.Name).containsIgnoreCase(searchValue);
-            if(item.assignedTo__r.Name != null){
-            inAssignedTo = String.ValueOf(item.assignedTo__r.Name).containsIgnoreCase(searchValue);
-            }            
-            if(inTitle == true ||inAssignedTo == true || item.Whiteboard_Item_Activities__r.size() > 0){
-                return true;   
-            }
-            return false;
-        }
-        return true;
-    }
-    
-    public void getPersonalOrCompanyTwo() {
-    
-    
-    if(indicator == false){
-    List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
-    tempList = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Completed_Date__c, Item_Due_Date__c, Past_Due__c,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
-                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                          LIMIT 30)
-                      FROM Whiteboard_Item__c
-                      WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true AND Completed__c =: true
-                      ORDER BY High_Priority__c DESC, CreatedDate
-                      LIMIT 100];
-    addToResultsTwo(tempList);
-    
-    }
-    
-    }
-    
-    
-    public PageReference searchItemsTwo(){//When you type in the search bar, this method is called
-   
-        String databaseSearch = '%' + searchValue + '%';
-        
-        List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
-        tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c, Completed_Date__c,
-                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c !=: indicator AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
-                          ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                          LIMIT 30)    
-                    FROM Whiteboard_Item__c
-                    WHERE PersonalItem__c !=: indicator AND Completed__c =: true
-                    ORDER BY High_Priority__c DESC, CreatedDate
-                    LIMIT 100]; 
-
-        addToResultsTwo(tempList);
-        return null;
-    }
-
-    
-
-    public void dateSearchTwo() {  //Used when a specific date is entered in the sidebar
-        List<Whiteboard_Item__c> tempSet = new List<Whiteboard_Item__c>();
-        
-        if (o.closeDate == null) {
-            addToResultsTwo(getAllCompletedItems());
-            return;
-        } else {
-            tempSet = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c, Completed_Date__c,
-                            (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
-                              FROM Whiteboard_Item_Activities__r
-                              WHERE PersonalItem__c !=: indicator AND Due_Date__c =: o.closeDate
-                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                              LIMIT 30)    
-                        FROM Whiteboard_Item__c
-                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true
-                        ORDER BY High_Priority__c DESC, CreatedDate
-                        LIMIT 100]; 
-    
-            addToResultsTwo(tempSet);
-            return;
-        }
-    }
-
-    public void filterItemsOrActsTwo() {
-    
-      List<Whiteboard_Item__c> tempSet = new List<Whiteboard_Item__c>();
-      List<Whiteboard_Item__c> specialCase = new List<Whiteboard_Item__c>();
-    
-        if (itemOrActivity == 'NONE') {
-            addToResultsTwo(getAllCompletedItems());
-            return;
-        } else if (itemOrActivity == 'ITEM') {
-            tempSet = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c, Completed_Date__c,
-                            (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
-                              FROM Whiteboard_Item_Activities__r
-                              WHERE PersonalItem__c !=: indicator AND id =: 'xct345'
-                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                              LIMIT 30)    
-                        FROM Whiteboard_Item__c
-                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true
-                        ORDER BY High_Priority__c DESC, CreatedDate
-                        LIMIT 100]; 
-    
-            addToResultsTwo(tempSet);
-            return;
-    
-        } else if (itemOrActivity == 'ACTIVITY') {
-            tempSet = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Past_Due__c, Completed_Date__c,
-                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
-                              FROM Whiteboard_Item_Activities__r
-                              WHERE PersonalItem__c !=: indicator
-                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                              LIMIT 30)
-                          FROM Whiteboard_Item__c
-                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Activities__c >: 0
-                          ORDER BY High_Priority__c DESC, CreatedDate
-                          LIMIT 100];
-        
-            List<Whiteboard_Item__c> keep = new List<Whiteboard_Item__c>(); 
-            for (Whiteboard_Item__c i : tempSet) {
-                if (i.Whiteboard_Item_Activities__r.size() != 0) {
-                    keep.add(i);
-                }
-            }
-            addToResultsTwo(keep);
-            return;
-        }   
-    }
-    
-    
-    
-    public void filterPriorityTwo() {
-        if (Priority == 'NONE') {
-            addToResultsTwo(getAllCompletedItems());
-            return;
-        }
-    
-        List<Whiteboard_Item__c> items = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Completed_Date__c, Item_Due_Date__c, Past_Due__c,
-            (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
-             FROM Whiteboard_Item_Activities__r
-             WHERE High_Priority__c =: priorityBool AND PersonalItem__c !=: indicator
-             ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-             LIMIT 30)
-        FROM Whiteboard_Item__c
-        WHERE PersonalItem__c !=: indicator
-        ORDER BY High_Priority__c DESC, CreatedDate];
-    
-        addToResultsTwo(items);
-    }
-    
-       public void filterTimeFrameTwo() {
-        
-        if (startDate == null) {
-            addToResultsTwo(getAllCompletedItems());
-            return;
-        }
-        
-      List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>();
-      List<Whiteboard_Item__c> specialCase = new List<Whiteboard_Item__c>();
-      
-      if(priorityBool == null){      
-        tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,
-                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
-                              FROM Whiteboard_Item_Activities__r
-                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                              LIMIT 30)
-                          FROM Whiteboard_Item__c
-                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate
-                          ORDER BY High_Priority__c DESC, CreatedDate
-                          LIMIT 100];
-    
-        specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,
-                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
-                              FROM Whiteboard_Item_Activities__r
-                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate
-                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                              LIMIT 30)
-                          FROM Whiteboard_Item__c
-                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Activities__c > 0
-                          ORDER BY High_Priority__c DESC, CreatedDate
-                          LIMIT 100];
-    }
-    
-        if(priorityBool == true){  
-    
-        tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,
-                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
-                              FROM Whiteboard_Item_Activities__r
-                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: true
-                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                              LIMIT 30)
-                          FROM Whiteboard_Item__c
-                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate
-                          ORDER BY High_Priority__c DESC, CreatedDate
-                          LIMIT 100];
-    
-        specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,
-                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
-                              FROM Whiteboard_Item_Activities__r
-                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: true
-                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                              LIMIT 30)
-                          FROM Whiteboard_Item__c
-                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Activities__c > 0
-                          ORDER BY High_Priority__c DESC, CreatedDate
-                          LIMIT 100];
-    } 
-    
-    if(priorityBool == false){  
-    
-        tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,
-                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
-                              FROM Whiteboard_Item_Activities__r
-                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: false
-                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                              LIMIT 30)
-                          FROM Whiteboard_Item__c
-                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate
-                          ORDER BY High_Priority__c DESC, CreatedDate
-                          LIMIT 100];
-    
-        specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,
-                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
-                              FROM Whiteboard_Item_Activities__r
-                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: false
-                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
-                              LIMIT 30)
-                          FROM Whiteboard_Item__c
-                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Activities__c > 0
-                          ORDER BY High_Priority__c DESC, CreatedDate
-                          LIMIT 100];
-    }                                           
-                          
-   if(itemActBool == null || itemActBool == false){
-        for (Whiteboard_Item__c i : specialCase) {
-          if (i.Whiteboard_Item_Activities__r.size() > 0) {
-                tempList.add(i);
-            }
-        }
-        }
-
-        addToResultsTwo(tempList);
-    }
-
-//end of completedItems Search code
-
-
-//////end of sidebar methods////////////////////////////////    
+        itemOrActivity = 'NONE';
+        priority = 'NONE';
+        timeFrame = 'NONE';     
+    }  
  
     public void getUserForFilter() {
         filterUser = [SELECT Name, LastName, Id, FirstName, Username, Email FROM User];
@@ -968,27 +169,15 @@ return allItems;
                       ORDER BY High_Priority__c DESC, CreatedDate
                       LIMIT 100];
         indicator = true;
-        setBoardTitle(indicator);
-
+        setBoardTitle(indicator);       
+        searchValue = '';
         itemOrActivity = 'NONE';
         priority = 'NONE';
-        timeFrame = 'NONE';
+        timeFrame = 'NONE'; 
         
-        getCompanyCompleted();
-    }              
+        filter();
 
-    public void getCompanyCompleted() {  
-        completedItems = [SELECT Name, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c, OwnerId, assignedTo__c, assignedTo__r.Name, Completed_Date__c,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE PersonalItem__c =: false 
-                          ORDER BY CreatedDate 
-                          LIMIT 30)
-                      FROM Whiteboard_Item__c
-                      WHERE PersonalItem__c =: false AND Completed__c =: true
-                      ORDER BY CreatedDate
-                      LIMIT 100];   
-    }
+    }              
     
     public void getPersonalItems() {
         currentWhiteboard = 'Personal Whiteboard';
@@ -1004,27 +193,16 @@ return allItems;
                       LIMIT 100];
         indicator = false;
         setBoardTitle(indicator);
-        getPersonalCompleted();
-
-         itemOrActivity = 'NONE';
+        
+        searchValue = '';
+        itemOrActivity = 'NONE';
         priority = 'NONE';
-        timeFrame = 'NONE';
+        timeFrame = 'NONE'; 
+        
+        filter();
+
     }
-    
-    public void getPersonalCompleted() {  
-                      
-        completedItems = [SELECT Name, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c, OwnerId, assignedTo__c, assignedTo__r.Name, Completed_Date__c,
-                         (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c
-                          FROM Whiteboard_Item_Activities__r
-                          WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
-                          ORDER BY CreatedDate 
-                          LIMIT 30)
-                      FROM Whiteboard_Item__c
-                      WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true AND Completed__c =: true
-                      ORDER BY CreatedDate
-                      LIMIT 100];                      
-    }
-    
+        
     // ********************************************************************************************************************************
     
     // ************************ DELETING ITEMS AND ACTIVITIES ****************************************************************
@@ -1032,6 +210,7 @@ return allItems;
     public PageReference clearActivity() {
         activity = new Whiteboard_Item_Activity__c();
         editIndicator = false;
+        filter();
         
         return null;
     }
@@ -1039,6 +218,7 @@ return allItems;
     public PageReference clearItem() {
         Item = new Whiteboard_Item__c();
         editIndicator = false;
+        filter();
         
         return null;
     }
@@ -1054,9 +234,9 @@ return allItems;
         try {
              update completed;
              if (indicator) {
-                    getCompanyItems();
+                    filter();
                 } else {
-                    getPersonalItems();
+                    filter();
                 }  
         }
         catch (Exception ex) {
@@ -1087,9 +267,9 @@ return allItems;
         update itemsToComplete;
         
         if (indicator) {
-            getCompanyItems();
+            filter();
         } else {
-            getPersonalItems();
+            filter();
         } 
         
         return;
@@ -1118,9 +298,9 @@ return allItems;
         update itemsToUnComplete;
         
         if (indicator) {
-            getCompanyItems();
+            filter();
         } else {
-            getPersonalItems();
+            filter();
         } 
         
         return;
@@ -1137,9 +317,9 @@ return allItems;
         try {
              update completed;
              if (indicator) {
-                    getCompanyItems();
+                    filter();
                 } else {
-                    getPersonalItems();
+                    filter();
                 }  
         }
         catch (Exception ex) {
@@ -1161,9 +341,9 @@ return allItems;
         update itemsToGivePriority;
         
         if (indicator) {
-            getCompanyItems();
+            filter();
         } else {
-            getPersonalItems();
+            filter();
         } 
         
         return;
@@ -1181,9 +361,9 @@ return allItems;
         update itemsToGivePriority;
         
         if (indicator) {
-            getCompanyItems();
+           filter();
         } else {
-            getPersonalItems();
+            filter();
         } 
         
         return;
@@ -1201,9 +381,10 @@ return allItems;
         update actToGivePriority;
         
         if (indicator) {
-            getCompanyItems();
-        } else {
-            getPersonalItems();
+            filter();
+              } else {
+            filter();
+            
         } 
         
         return;
@@ -1221,9 +402,9 @@ return allItems;
         update actToGivePriority;
         
         if (indicator) {
-            getCompanyItems();
+            filter();
         } else {
-            getPersonalItems();
+            filter();
         } 
         
         return;
@@ -1236,9 +417,9 @@ return allItems;
             try {
                 delete goners;
                 if (indicator) {
-                    getCompanyItems();
+                    filter();
                 } else {
-                    getPersonalItems();
+                    filter();
                 }              
             }            
             catch(Exception ex) {
@@ -1252,9 +433,9 @@ return allItems;
         try {
              delete goners;
              if (indicator) {
-                    getCompanyItems();
+                    filter();
                 } else {
-                    getPersonalItems();
+                    filter();
                 }  
         }
         catch (Exception ex) {
@@ -1273,7 +454,8 @@ return allItems;
         if (Items.size() > 0) {
             Item = Items.get(0);
         }
-        getUserList();                  
+        getUserList(); 
+        filter();
 
         return null;
     }
@@ -1287,7 +469,8 @@ return allItems;
         if (Activities.size() > 0) {
             activity = Activities.get(0);
         }
-        getUserList();                  
+        getUserList();
+        filter();
 
         return null;
     }
@@ -1333,14 +516,15 @@ return allItems;
     
     // ************************ SAVING ITEMS AND ACTIVITIES ****************************************************************
     
-    public void save() {
-        System.debug('Entered global save');                                            
+    public void save() {                                            
         
         if(indicator)  {
-           saveCompany(); 
+           saveCompany();
+            
         } else {
             savePersonal();
-        }                  
+        }    
+        filter();       
     }
     
     
@@ -1376,8 +560,7 @@ return allItems;
             
             Item = new Whiteboard_Item__c();
             getUserList();
-            assignedUser = null;
-            getCompanyItems();         
+            assignedUser = null;         
         }
         catch(Exception ex) {
             ApexPages.addMessages(ex);
@@ -1392,8 +575,10 @@ return allItems;
     public void saveAct() {                
         if(indicator)  {
            saveActCompany(); 
+           filter();
         } else {
             saveActPersonal();
+            filter();
         } 
     }
     
@@ -1416,8 +601,7 @@ return allItems;
             activity = new Whiteboard_Item_Activity__c();
             getUserList();
             assignedUser = null;
-            
-            getCompanyItems();
+
         }                
         catch(Exception ex) {
             ApexPages.addMessages(ex);
@@ -1452,8 +636,7 @@ return allItems;
             
             Item = new Whiteboard_Item__c();
             getUserList();
-            assignedUser = null;
-            getPersonalItems();         
+            assignedUser = null;        
         }
         catch(Exception ex)
         {
@@ -1479,14 +662,2763 @@ return allItems;
             activity = new Whiteboard_Item_Activity__c();
             getUserList();
             assignedUser = null;
-            getPersonalItems();
         }                
         catch(Exception ex) {
             ApexPages.addMessages(ex);
         }
         editIndicator = false;
         return null;
-    }    
+    }   
+    
+    
+    ///////****************************SIDE BAR METHODS**********************************************////////// 
+    
+    public List<SelectOption> getItemTask(){ //creates selection options for item v. activity filter bar
+         List<SelectOption> options = new List<SelectOption>();
+            options.add(new SelectOption('NONE', '--Type--'));
+            options.add(new SelectOption('ITEM', 'Items'));
+            options.add(new SelectOption('ACTIVITY','Activities'));
+            return options;
+    }
+
+   public List<SelectOption> getItems() { //creates selection options for priority filter bar
+            List<SelectOption> options = new List<SelectOption>();
+            options.add(new SelectOption('NONE', '--Priority--'));
+            options.add(new SelectOption('HIGH','High Priority'));
+            options.add(new SelectOption('NOPRIORITY','No Priority'));
+            return options;
+    }
+          
+    public List<SelectOption> getItemsTwo() { //creates selection options for duedate filter bar
+            List<SelectOption> options = new List<SelectOption>();
+            options.add(new SelectOption('NONE', '--Due Date--'));
+            options.add(new SelectOption('TODAY', 'Today'));
+            options.add(new SelectOption('TOMORROW', 'Tomorrow'));
+            options.add(new SelectOption('THISWEEK','This Week'));
+            options.add(new SelectOption('NEXTWEEK','Next Week'));
+            options.add(new SelectOption('THISMONTH','This Month'));
+            options.add(new SelectOption('NEXTMONTH','Next Month'));
+            options.add(new SelectOption('PAST', 'Past Due'));
+            return options;
+    }
+
+    public PageReference filter() { //called when any of the filters is clicked
+        
+                
+        if(TimeFrame == 'NONE') {
+            startDate = null;
+            endDate = null;
+        } else if (TimeFrame == 'TODAY') {
+            startDate = Date.today();
+            endDate = Date.today().addDays(1);
+        } else if (TimeFrame == 'TOMORROW') {
+            startDate = Date.today().addDays(1);
+            endDate = Date.today().addDays(2);
+        } else if (TimeFrame == 'THISWEEK') {
+            startDate = Date.today();
+            endDate = Date.today().toStartofWeek().addDays(7);
+        } else if (TimeFrame == 'NEXTWEEK') {
+            startDate = Date.today().toStartofWeek().addDays(7);
+            endDate = startDate.addDays(7);
+        } else if (TimeFrame == 'THISMONTH') {
+            startDate = Date.today();
+            endDate = Date.today().toStartOfMonth().addMonths(1);
+        } else if (TimeFrame == 'NEXTMONTH') {
+            startDate = Date.today().toStartofMonth().addMonths(1);
+            endDate = startDate.addMonths(1);
+        } else if (TimeFrame == 'PAST') {
+            startDate = date.newInstance((Date.today().year() - 10), date.today().month(), (date.today().day() - 1));
+            endDate = date.newInstance(Date.today().year(), date.today().month(), (date.today().day()));
+        }
+        
+        if(indicator == true){
+           filterEverythingCompany(); 
+        }else if(indicator == false){
+         filterEverythingPersonal();
+        }         
+        return null;
+    }
+
+    
+    public void filterEverythingCompany() { //main filter method for company whiteboard
+        
+        List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>(); //stores current items
+        List<Whiteboard_Item__c> specialCase = new List<Whiteboard_Item__c>();
+        List<Whiteboard_Item__c> tempList2 = new List<Whiteboard_Item__c>(); //stores completed items
+        List<Whiteboard_Item__c> specialCase2 = new List<Whiteboard_Item__c>();
+        
+      if(searchValue == ''){ //if nothing is entered into the search box, then it is not account for in the SOQL statements  
+
+        if(itemOrActivity == 'NONE' && priority == 'NONE' && timeframe == 'NONE'){
+
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            
+        }else if(itemOrActivity == 'NONE' && priority == 'NONE' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND (Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND (Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+              
+        }else if(itemOrActivity == 'ITEM' && priority == 'NONE' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx'
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ITEM' && priority == 'NONE' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate 
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'NONE' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c >:0
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Activities__c >:0
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100]; 
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'NONE' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'NONE' && priority == 'HIGH' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND High_Priority__c =: true                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =: true
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND High_Priority__c =: true
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =: false
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND High_Priority__c =: true                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =: true
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND High_Priority__c =: true
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =: false
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+       
+        }else if(itemOrActivity == 'NONE' && priority == 'HIGH' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+                tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:true
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND (Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:true
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND (Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'ITEM' && priority == 'HIGH' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx'
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c = true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c = true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ITEM' && priority == 'HIGH' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+           tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'HIGH' && timeframe == 'NONE'){
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND High_Priority__c=: true
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND High_Priority__c=: true
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'HIGH' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+        
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: true
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: true
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'NONE' && priority == 'NOPRIORITY' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND High_Priority__c =: false                            
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =: false
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND High_Priority__c =: false
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =: true
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND High_Priority__c =: false                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =: false
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND High_Priority__c =: false
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =: true
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'NONE' && priority == 'NOPRIORITY' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:false
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND (Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:false
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND (Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'ITEM' && priority == 'NOPRIORITY' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx'
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c = false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c = false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ITEM' && priority == 'NOPRIORITY' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+           tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'NOPRIORITY' && timeframe == 'NONE'){
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND High_Priority__c=: false
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND High_Priority__c=: false
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'NOPRIORITY' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+        
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: false
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: false
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }
+      }else if(searchValue != ''){//if something is entered into the search box, then it needs to be accounted for in the SOQL statements  
+          
+          String databaseSearch = '%' + searchValue + '%';
+          
+          if(itemOrActivity == 'NONE'&& priority == 'NONE' && timeframe == 'NONE'){
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND(Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+              
+              for(Whiteboard_Item__c i: specialCase){
+                if( i.name.containsIgnoreCase(searchValue)|| i.Whiteboard_Item_Activities__r.size() > 0){
+                 tempList.add(i);
+                }else if(i.assignedTo__r.Name != null){
+                    if(i.assignedTo__r.Name.containsIgnoreCase(searchValue)){
+                           tempList.add(i);
+                    }
+                }
+              }
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND(Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+              
+               for(Whiteboard_Item__c i: specialCase2){
+                if( i.name.containsIgnoreCase(searchValue)|| i.Whiteboard_Item_Activities__r.size() > 0){
+                 tempList2.add(i);
+                }else if(i.assignedTo__r.Name != null){
+                    if(i.assignedTo__r.Name.containsIgnoreCase(searchValue)){
+                           tempList2.add(i);
+                    }
+                }
+              }
+            
+        }else if(itemOrActivity == 'NONE' && priority == 'NONE' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)    
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND (((Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) AND (((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch)))) OR ((Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))))
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                          
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)    
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND (Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) AND (((Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) AND (((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch)))) OR ((Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))))
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+              
+        }else if(itemOrActivity == 'ITEM' && priority == 'NONE' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx'
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ITEM' && priority == 'NONE' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'NONE' && timeframe == 'NONE'){
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c >:0
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Activities__c >:0
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100]; 
+                        
+            for(Whiteboard_Item__c i: specialCase){
+                if(i.Whiteboard_Item_Activities__r.size() > 0){
+                    tempList.add(i);
+                }
+            }
+            
+            for(Whiteboard_Item__c i: specialCase2){
+                if(i.Whiteboard_Item_Activities__r.size() > 0){
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'NONE' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'NONE' && priority == 'HIGH' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND High_Priority__c =: true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =: true AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND High_Priority__c =: true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND ((High_Priority__c =: false AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))OR (High_Priority__c =: true AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch)))
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND High_Priority__c =: true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =: true AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND High_Priority__c =: true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                  
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND ((High_Priority__c =: false AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))OR (High_Priority__c =: true AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch)))
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+       
+        }else if(itemOrActivity == 'NONE' && priority == 'HIGH' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND (((Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) OR((Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) ) 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND(((Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) OR((Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) ) 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'ITEM' && priority == 'HIGH' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx'
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ITEM' && priority == 'HIGH' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+           tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'HIGH' && timeframe == 'NONE'){
+                specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND High_Priority__c =: true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c >:0
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND High_Priority__c =: true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Activities__c >:0
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100]; 
+                        
+            for(Whiteboard_Item__c i: specialCase){
+                if(i.Whiteboard_Item_Activities__r.size() > 0){
+                    tempList.add(i);
+                }
+            }
+            
+            for(Whiteboard_Item__c i: specialCase2){
+                if(i.Whiteboard_Item_Activities__r.size() > 0){
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'HIGH' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+        
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND (((Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) OR((Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) ) 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND(((Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) OR((Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) ) 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'NONE' && priority == 'NOPRIORITY' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND High_Priority__c =: false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =: false AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND High_Priority__c =: false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND ((High_Priority__c =: false AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))OR (High_Priority__c =: true AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch)))
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND High_Priority__c =: false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =: false AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND High_Priority__c =: false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                  
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND ((High_Priority__c =: false AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))OR (High_Priority__c =: true AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch)))
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+       
+        }
+        else if(itemOrActivity == 'NONE' && priority == 'NOPRIORITY' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+                        tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND (((Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) OR((Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) ) 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND(((Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) OR((Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) ) 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'ITEM' && priority == 'NOPRIORITY' && timeframe == 'NONE'){
+           tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx'
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ITEM' && priority == 'NOPRIORITY' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'NOPRIORITY' && timeframe == 'NONE'){
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND High_Priority__c =: false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c >:0
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND High_Priority__c =: false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true AND Activities__c >:0
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100]; 
+                        
+            for(Whiteboard_Item__c i: specialCase){
+                if(i.Whiteboard_Item_Activities__r.size() > 0){
+                    tempList.add(i);
+                }
+            }
+            
+            for(Whiteboard_Item__c i: specialCase2){
+                if(i.Whiteboard_Item_Activities__r.size() > 0){
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'NOPRIORITY' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: false 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+       
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE PersonalItem__c !=: indicator AND Completed__c =: true 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                          for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+            }
+            
+            
+          
+      }
+        
+        currentItems = tempList;
+        completedItems = tempList2;
+    }
+    
+public void filterEverythingPersonal() { //main filter method for personal whiteboard
+        
+        List<Whiteboard_Item__c> tempList = new List<Whiteboard_Item__c>(); //stores current items
+        List<Whiteboard_Item__c> specialCase = new List<Whiteboard_Item__c>();
+        List<Whiteboard_Item__c> tempList2 = new List<Whiteboard_Item__c>(); //stores completed items
+        List<Whiteboard_Item__c> specialCase2 = new List<Whiteboard_Item__c>();
+        
+      if(searchValue == ''){ //if nothing is entered into the search box, then it is not account for in the SOQL statements             
+        if(itemOrActivity == 'NONE' && priority == 'NONE' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            
+        }else if(itemOrActivity == 'NONE' && priority == 'NONE' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND (Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND (Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+              
+        }else if(itemOrActivity == 'ITEM' && priority == 'NONE' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx'
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ITEM' && priority == 'NONE' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate 
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'NONE' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c >:0
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND Activities__c >:0
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100]; 
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'NONE' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'NONE' && priority == 'HIGH' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: true                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =: true
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: true
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =: false
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: true                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =: true
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: true
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =: false
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+       
+        }else if(itemOrActivity == 'NONE' && priority == 'HIGH' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+                tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:true
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND (Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:true
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND (Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'ITEM' && priority == 'HIGH' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx'
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c = true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c = true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ITEM' && priority == 'HIGH' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+           tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'HIGH' && timeframe == 'NONE'){
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c=: true
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c=: true
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'HIGH' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+        
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: true
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: true
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'NONE' && priority == 'NOPRIORITY' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: false                            
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =: false
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: false
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =: true
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: false                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =: false
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: false
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =: true
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'NONE' && priority == 'NOPRIORITY' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:false
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND (Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:false
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND (Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'ITEM' && priority == 'NOPRIORITY' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx'
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c = false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c = false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ITEM' && priority == 'NOPRIORITY' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+           tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'NOPRIORITY' && timeframe == 'NONE'){
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c=: false
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c=: false
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'NOPRIORITY' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+        
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: false
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =: false
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }
+      }else if(searchValue != ''){//if something is entered into the search box, then it needs to be accounted for in the SOQL statements  
+          
+          String databaseSearch = '%' + searchValue + '%';
+          
+          if(itemOrActivity == 'NONE' && priority == 'NONE' && timeframe == 'NONE'){
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND(Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+              
+              for(Whiteboard_Item__c i: specialCase){
+                if( i.name.containsIgnoreCase(searchValue)|| i.Whiteboard_Item_Activities__r.size() > 0){
+                 tempList.add(i);
+                }else if(i.assignedTo__r.Name != null){
+                    if(i.assignedTo__r.Name.containsIgnoreCase(searchValue)){
+                           tempList.add(i);
+                    }
+                }
+              }
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND(Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+              
+               for(Whiteboard_Item__c i: specialCase2){
+                if( i.name.containsIgnoreCase(searchValue)|| i.Whiteboard_Item_Activities__r.size() > 0){
+                 tempList2.add(i);
+                }else if(i.assignedTo__r.Name != null){
+                    if(i.assignedTo__r.Name.containsIgnoreCase(searchValue)){
+                           tempList2.add(i);
+                    }
+                }
+              }
+            
+        }else if(itemOrActivity == 'NONE' && priority == 'NONE' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)    
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND (((Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) AND (((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch)))) OR ((Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))))
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                          
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)    
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND (Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) AND (((Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) AND (((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch)))) OR ((Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))))
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+              
+        }else if(itemOrActivity == 'ITEM' && priority == 'NONE' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx'
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ITEM' && priority == 'NONE' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'NONE' && timeframe == 'NONE'){
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c >:0
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND Activities__c >:0
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100]; 
+                        
+            for(Whiteboard_Item__c i: specialCase){
+                if(i.Whiteboard_Item_Activities__r.size() > 0){
+                    tempList.add(i);
+                }
+            }
+            
+            for(Whiteboard_Item__c i: specialCase2){
+                if(i.Whiteboard_Item_Activities__r.size() > 0){
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'NONE' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'NONE' && priority == 'HIGH' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =: true AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND ((High_Priority__c =: false AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))OR (High_Priority__c =: true AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch)))
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =: true AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                  
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND ((High_Priority__c =: false AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))OR (High_Priority__c =: true AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch)))
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+       
+        }else if(itemOrActivity == 'NONE' && priority == 'HIGH' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND (((Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) OR((Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) ) 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND(((Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) OR((Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) ) 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'ITEM' && priority == 'HIGH' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx'
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ITEM' && priority == 'HIGH' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+           tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'HIGH' && timeframe == 'NONE'){
+                specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c >:0
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND Activities__c >:0
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100]; 
+                        
+            for(Whiteboard_Item__c i: specialCase){
+                if(i.Whiteboard_Item_Activities__r.size() > 0){
+                    tempList.add(i);
+                }
+            }
+            
+            for(Whiteboard_Item__c i: specialCase2){
+                if(i.Whiteboard_Item_Activities__r.size() > 0){
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'HIGH' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+        
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND (((Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) OR((Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) ) 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:true AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND(((Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) OR((Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) ) 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'NONE' && priority == 'NOPRIORITY' && timeframe == 'NONE'){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =: false AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND ((High_Priority__c =: false AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))OR (High_Priority__c =: true AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch)))
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =: false AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                  
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND ((High_Priority__c =: false AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))OR (High_Priority__c =: true AND (NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch)))
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+       
+        }
+        else if(itemOrActivity == 'NONE' && priority == 'NOPRIORITY' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+                        tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND (((Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) OR((Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) ) 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c, Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c, Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND(((Item_Due_Date__c =: null OR Item_Due_Date__c <: startDate OR Item_Due_Date__c >=: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) OR((Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate) AND ((NOT Name LIKE :databaseSearch) AND (NOT AssignedTo__r.Name LIKE :databaseSearch))) ) 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                   
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'ITEM' && priority == 'NOPRIORITY' && timeframe == 'NONE'){
+           tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx'
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ITEM' && priority == 'NOPRIORITY' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            tempList = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator  AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND High_Priority__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            tempList2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND id =: 'xxx12345xxx' //this id will never occur, it is a trick so that only items show up
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND High_Priority__c =: false AND Item_Due_Date__c >=: startDate AND Item_Due_Date__c <: endDate AND (Name LIKE :databaseSearch OR AssignedTo__r.Name LIKE :databaseSearch)
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'NOPRIORITY' && timeframe == 'NONE'){
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false AND Activities__c >:0
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND High_Priority__c =: false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true AND Activities__c >:0
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100]; 
+                        
+            for(Whiteboard_Item__c i: specialCase){
+                if(i.Whiteboard_Item_Activities__r.size() > 0){
+                    tempList.add(i);
+                }
+            }
+            
+            for(Whiteboard_Item__c i: specialCase2){
+                if(i.Whiteboard_Item_Activities__r.size() > 0){
+                    tempList2.add(i);
+                }
+            }
+        }else if(itemOrActivity == 'ACTIVITY' && priority == 'NOPRIORITY' && (timeframe == 'TODAY'||timeframe == 'TOMORROW'||timeframe == 'THISWEEK'||timeframe == 'NEXTWEEK'||timeframe == 'THISMONTH'||timeframe == 'NEXTMONTH'||timeframe == 'PAST')){
+            specialCase = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                             
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: false 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+            
+       
+            
+            specialCase2 = [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c,Completed_Date__c,Past_Due__c,
+                           (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Completed_Date__c,Past_Due__c
+                              FROM Whiteboard_Item_Activities__r
+                              WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Due_Date__c >=: startDate AND Due_Date__c <: endDate AND High_Priority__c =:false AND (Name LIKE :databaseSearch OR Description__c LIKE :databaseSearch OR actAssignedTo__r.Name LIKE :databaseSearch)                              
+                              ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                              LIMIT 30)
+                          FROM Whiteboard_Item__c
+                          WHERE CreatedById =: UserInfo.getUserId() AND  PersonalItem__c !=: indicator AND Completed__c =: true 
+                          ORDER BY High_Priority__c DESC, CreatedDate
+                          LIMIT 100];
+                          for (Whiteboard_Item__c i : specialCase) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList.add(i);
+                }
+            }
+            for (Whiteboard_Item__c i : specialCase2) {
+                if (i.Whiteboard_Item_Activities__r.size() > 0) {
+                    tempList2.add(i);
+                }
+            }
+            }
+            
+            
+          
+      }
+        
+        currentItems = tempList;
+        completedItems = tempList2;
+    }
+    
+
+    
+    
+    
+    public List<Whiteboard_Item__c> getAllCompletedItems() {//gets all completed items on company or personal whiteboard
+        List<Whiteboard_Item__c> allItems = new List<Whiteboard_Item__c>();
+
+        if(indicator == true){//if you're on the company whiteboard
+            allItems =  [SELECT Name, Id, Item_Due_Date__c, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Activities__c, Completed_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Completed__c, Id, Completedby__c, CompletedBy__r.Name, High_Priority__c, actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE PersonalItem__c !=: indicator
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE PersonalItem__c !=: indicator AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }else if(indicator == false){//if you're on the personal whiteboard
+            allitems = [SELECT Name, Id, Trashed__c, Completed__c, High_Priority__c, Completedby__c, CompletedBy__r.Name, OwnerId, assignedTo__c, assignedTo__r.Name, Completed_Date__c, Item_Due_Date__c, Past_Due__c,
+                        (SELECT Name, Due_Date__c, Description__c, Trashed__c, Id, Completed__c, Completedby__c, CompletedBy__r.Name, High_Priority__c,  actAssignedTo__c, actAssignedTo__r.Name, Past_Due__c, Completed_Date__c
+                            FROM Whiteboard_Item_Activities__r
+                            WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true
+                            ORDER BY Completed__c, High_Priority__c DESC, CreatedDate 
+                            LIMIT 30)
+                        FROM Whiteboard_Item__c
+                        WHERE CreatedById =: UserInfo.getUserId() AND PersonalItem__c =: true AND Completed__c =: true
+                        ORDER BY High_Priority__c DESC, CreatedDate
+                        LIMIT 100];
+        }
+    return allItems;
+    }   
+    
+    public PageReference clearSearch() {//called when 'clear' button is clicked, resets the search bar
+        currentItems = getAllItems();
+        completedItems = getAllCompletedItems();
+        itemOrActivity = 'NONE';
+        itemActBool = null;
+        Priority = 'NONE';
+        priorityBool = null;
+        TimeFrame = 'NONE';
+        startDate = null;
+        endDate = null;
+        o.closeDate = null;
+        searchValue = '';
+        
+        
+        return null;
+    }
+    
+    //////end of sidebar methods//////////////////////////////// 
 
     // ********************************************************************************************************************************
     
@@ -1530,6 +3462,7 @@ return allItems;
         ApexPages.currentpage().getParameters().put('ActId', act.Id);
         controller.deleteAct();
         controller.getPersonalWhiteboard();
+        
              
         
         
@@ -1545,4 +3478,681 @@ return allItems;
         
         //System.assertEquals(null, controller.saveaCT());
     }
+     @IsTest
+     static void testGetItemTask()
+    {
+     WhiteboardController controller = new WhiteboardController();   
+     List<SelectOption> testoptions = controller.getItemTask();
+     system.assertEquals(3,testoptions.size());
+    }
+    
+    @IsTest
+     static void testGetItems()
+    {
+     WhiteboardController controller = new WhiteboardController();   
+     List<SelectOption> testoptions = controller.getItems();
+     system.assertEquals(3,testoptions.size());
+    }
+    
+      @IsTest
+     static void testGetItemsTwo()
+    {
+     WhiteboardController controller = new WhiteboardController();   
+     List<SelectOption> testoptions = controller.getItemsTwo();
+     system.assertEquals(8,testoptions.size());
+    }       @IsTest
+     static void testGetAllItems()
+    {
+        WhiteboardController controller = new WhiteboardController(); 
+        Boolean indicator;
+        
+        Whiteboard_Item__c item = new Whiteboard_Item__c(Name = 'Item One', PersonalItem__c = false, Completed__c = false);
+        controller.setItem(item);
+        controller.save();      
+        Whiteboard_Item__c item2 = new Whiteboard_Item__c(Name = 'Item Two', PersonalItem__c = false, Completed__c = false);
+        controller.setItem(item2);
+        controller.save();
+        Whiteboard_Item__c item3 = new Whiteboard_Item__c(Name = 'Item Three', PersonalItem__c = true, Completed__c = false);
+        controller.setItem(item3);
+        controller.save();
+        
+        Controller.Indicator = true; //company whiteboard
+        List<Whiteboard_Item__c> allItems = new List<Whiteboard_Item__c>();
+        allItems = controller.getAllItems();        
+        System.assertEquals(2, allItems.size());
+        
+        controller.Indicator = false;
+        List<Whiteboard_Item__c> allItems2 = new List<Whiteboard_Item__c>();
+        allItems2 = controller.getAllItems();       
+        System.assertEquals(1, allItems2.size());
+        
+        
+        Whiteboard_Item__c item4 = new Whiteboard_Item__c(Name = 'Item Three', PersonalItem__c = true, Completed__c = true);
+        controller.setItem(item4);
+        controller.save();
+        
+        controller.getPersonalItems();
+        System.assertEquals(1, controller.currentItems.size());
+        System.assertEquals('Personal Whiteboard', controller.currentWhiteboard);
+        System.assertEquals(false, controller.indicator);
+        System.assertEquals(1, controller.completedItems.size());
+                
+    }
+    
+           @IsTest
+     static void testEditingItemsActs()
+    {
+        //clearActivity
+        WhiteboardController controller = new WhiteboardController(); 
+        controller.editIndicator = true;
+        Controller.clearActivity();
+        System.assertEquals(false, controller.editIndicator);
+        
+        //clearItem
+        controller.editIndicator = true;
+        Controller.clearItem();
+        System.assertEquals(false, controller.editIndicator);
+        
+        //completeAct
+        Whiteboard_Item__c item = new Whiteboard_Item__c(Name = 'Item One', PersonalItem__c = false, Completed__c = false);
+        controller.setItem(item);
+        controller.save();
+        controller.setWhiteboardId(item.Id);
+        Whiteboard_Item_Activity__c act = new Whiteboard_Item_Activity__c(Name = 'Act One');
+        controller.setAct(act);        
+        controller.saveAct();
+        controller.saveActPersonal();
+        ApexPages.currentpage().getParameters().put('ActId', act.Id);
+        controller.completeAct();
+        act = [SELECT Id, Name, Completed__c, CompletedBy__c, Completed_Date__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')]; 
+        System.assertEquals(act.Completed__c, true);
+        System.assertEquals(act.Completed_Date__c, date.today());
+        
+        controller.indicator = false;
+        Whiteboard_Item__c item2 = new Whiteboard_Item__c(Name = 'Item One', PersonalItem__c = true, Completed__c = false);
+        controller.setItem(item2);
+        controller.save();
+        controller.setWhiteboardId(item2.Id);
+        Whiteboard_Item_Activity__c act2 = new Whiteboard_Item_Activity__c(Name = 'Act Two');
+        controller.setAct(act2);        
+        controller.saveAct();
+        controller.saveActPersonal();
+        System.assertEquals(act2.Completed__c, false);
+        ApexPages.currentpage().getParameters().put('ActId', act2.Id);
+        controller.completeAct();
+        act2 = [SELECT Id, Name, Completed__c, CompletedBy__c, Completed_Date__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')]; 
+        System.assertEquals(act2.Completed__c, true);
+        System.assertEquals(act2.Completed_Date__c, date.today());
+        
+        //completeItem
+        controller.indicator = true;
+        ApexPages.currentpage().getParameters().put('ItemId', item.Id);
+        System.assertEquals(false, item.completed__c);
+        controller.completeItem();
+        item = [SELECT id, name, Completed__c, Completedby__c, OwnerId
+               from Whiteboard_Item__c where id = :ApexPages.currentpage().getparameters().get('ItemId')];
+        System.assertEquals(true, item.completed__c);
+        
+        controller.indicator = false;
+        ApexPages.currentpage().getParameters().put('ItemId', item2.Id);
+        System.assertEquals(false, item2.completed__c);
+        controller.completeItem();
+        item2 = [SELECT id, name, Completed__c, Completedby__c, OwnerId
+               from Whiteboard_Item__c where id = :ApexPages.currentpage().getparameters().get('ItemId')];
+        System.assertEquals(true, item2.completed__c);  
+		
+		//uncomplete item
+		controller.indicator = true;
+		ApexPages.currentpage().getParameters().put('ItemId', item2.Id);
+		System.assertEquals(true, item2.completed__c);
+		controller.unCompleteItem();
+        item2 = [SELECT id, name, Completed__c, Completedby__c, OwnerId
+               from Whiteboard_Item__c where id = :ApexPages.currentpage().getparameters().get('ItemId')];
+		System.assertEquals(false, item2.completed__c);
+		
+		controller.indicator = false;
+		ApexPages.currentpage().getParameters().put('ItemId', item.Id);
+		System.assertEquals(true, item.completed__c);
+		controller.unCompleteItem();
+        item = [SELECT id, name, Completed__c, Completedby__c, High_Priority__c, OwnerId
+               from Whiteboard_Item__c where id = :ApexPages.currentpage().getparameters().get('ItemId')];
+		System.assertEquals(false, item.completed__c);
+		
+		//uncomplete activity
+              
+		controller.indicator = true;
+		ApexPages.currentpage().getParameters().put('ActId', act.Id);
+		act = [SELECT Id, High_Priority__c, Name, Completed__c, CompletedBy__c, Completed_Date__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')]; 
+		System.assertEquals(true, act.completed__c);
+		controller.uncompleteAct();
+		act = [SELECT Id, High_Priority__c, Name, Completed__c, CompletedBy__c, Completed_Date__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')]; 
+		System.assertEquals(false, act.completed__c);
+		
+		controller.indicator = false;
+		ApexPages.currentpage().getParameters().put('ActId', act2.Id);
+		act2 = [SELECT Id, Name, Completed__c, CompletedBy__c, Completed_Date__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')]; 
+		System.assertEquals(true, act2.completed__c);
+		controller.uncompleteAct();
+		act2 = [SELECT Id, Name, Completed__c, CompletedBy__c, Completed_Date__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')]; 
+		System.assertEquals(false, act2.completed__c);
+		
+		//set priority
+		controller.indicator = true;
+		ApexPages.currentpage().getParameters().put('ItemId', item.Id);
+		System.assertEquals(false, item.High_Priority__c);
+		controller.setPriority();
+        item = [SELECT id, name, Completed__c, High_Priority__c, Completedby__c, OwnerId
+               from Whiteboard_Item__c where id = :item.id];
+		System.assertEquals(true, item.High_Priority__c);
+		controller.indicator = false;
+		controller.setPriority();
+		
+		//unset priority
+		controller.indicator = true;
+		System.assertEquals(true, item.High_Priority__c);
+		controller.unsetPriority();
+		item = [SELECT id, name, Completed__c, High_Priority__c, Completedby__c, OwnerId
+               from Whiteboard_Item__c where id = :item.id];
+		System.assertEquals(false, item.High_Priority__c);
+		controller.indicator = false;
+		controller.unsetPriority();
+		
+		//set act priority
+		controller.indicator = true;
+		ApexPages.currentpage().getParameters().put('ActId', act.Id);
+		System.assertEquals(false, act.High_Priority__c);
+		controller.setActPriority();
+        act = [SELECT Id, High_Priority__c, Name, Completed__c, CompletedBy__c, Completed_Date__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')]; 
+		System.assertEquals(true, act.High_Priority__c);
+		controller.indicator = false;
+		controller.setActPriority();
+		
+		//unset act priority
+		controller.indicator = true;
+		ApexPages.currentpage().getParameters().put('ActId', act.Id);
+		System.assertEquals(true, act.High_Priority__c);
+		controller.unSetActPriority();
+        act = [SELECT Id, High_Priority__c, Name, Completed__c, CompletedBy__c, Completed_Date__c from Whiteboard_Item_Activity__c where id = :ApexPages.currentpage().getparameters().get('ActId')]; 
+		System.assertEquals(false, act.High_Priority__c);
+		controller.indicator = false;
+		controller.unSetActPriority();		
+    }
+    
+        @IsTest
+    static void testEdit()
+    {
+        WhiteboardController controller = new WhiteboardController();
+        Whiteboard_Item__c item = new Whiteboard_Item__c(Name = 'Item One', PersonalItem__c = false, Completed__c = false);
+        controller.setItem(item);
+        controller.save();
+        controller.setWhiteboardId(item.Id);
+        Whiteboard_Item_Activity__c act = new Whiteboard_Item_Activity__c(Name = 'Act One');
+        controller.setAct(act);        
+        controller.saveAct();
+        controller.saveActPersonal();
+        ApexPages.currentpage().getParameters().put('ActId', act.Id);
+        
+		//edit item
+		System.assertEquals(false, controller.editIndicator);
+		controller.editItem();
+		System.assertEquals(true, controller.editIndicator);
+		
+		//edit activity
+		controller.editActivity();
+		
+		//reset
+		controller.reset();
+		System.assertEquals(false, controller.editIndicator);
+		System.assertEquals(null, controller.assignedUser);
+        
+    }
+	
+	@IsTest
+     static void testTimeFrameFilter()
+    {
+    WhiteboardController controller = new WhiteboardController();
+        
+	Whiteboard_Item__c item = new Whiteboard_Item__c(Name = 'Item One', PersonalItem__c = false, Completed__c = false);
+    controller.setItem(item);
+    controller.save();
+	System.assertEquals(1, controller.currentItems.size());
+        
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 System.assertEquals(0, controller.currentItems.size());
+	 controller.TimeFrame = 'TOMORROW';
+	 controller.filter();
+	 System.assertEquals(0, controller.currentItems.size());
+	 controller.TimeFrame = 'THISWEEK';
+	 controller.filter();
+	 System.assertEquals(0, controller.currentItems.size());
+	 controller.TimeFrame = 'NEXTWEEK';
+	 controller.filter();
+	 System.assertEquals(0, controller.currentItems.size());
+	 controller.TimeFrame = 'THISMONTH';
+	 controller.filter();
+	 System.assertEquals(0, controller.currentItems.size());
+	 controller.TimeFrame = 'NEXTMONTH';
+	 controller.filter();
+	 System.assertEquals(0, controller.currentItems.size());
+	 controller.TimeFrame = 'PAST';
+	 controller.filter();
+	 System.assertEquals(0, controller.currentItems.size());	 
+	 
+    }
+	
+	@IsTest
+     static void testCompanyFilterWithoutSearch()
+    {
+    WhiteboardController controller = new WhiteboardController();
+        
+	Whiteboard_Item__c item = new Whiteboard_Item__c(Name = 'Item One', PersonalItem__c = false, Completed__c = false);
+    controller.setItem(item);
+    controller.save();
+	System.assertEquals(1, controller.currentItems.size());
+	controller.indicator = true;
+     
+	 controller.searchValue = '';
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+        
+    }
+	
+	@IsTest
+     static void testCompanyFilterWithSearch()
+    {	
+	WhiteboardController controller = new WhiteboardController();
+	Whiteboard_Item__c item = new Whiteboard_Item__c(Name = 'Item One', PersonalItem__c = false, Completed__c = false);
+    controller.setItem(item);
+    controller.save();
+	System.assertEquals(1, controller.currentItems.size());
+	controller.indicator = true;
+	
+	
+	 controller.searchValue = 'HELLO';
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 }
+	 
+	 	@IsTest
+     static void testPersonalFilterWithoutSearch()
+    {
+    WhiteboardController controller = new WhiteboardController();
+	controller.indicator = false;
+       
+	Whiteboard_Item__c item = new Whiteboard_Item__c(Name = 'Item One', PersonalItem__c = true, Completed__c = false);
+    controller.setItem(item);
+    controller.save();
+	System.assertEquals(1, controller.currentItems.size());
+	
+	 controller.searchValue = '';
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+        
+    }
+	
+	@IsTest
+     static void testPersonalFilterWithSearch()
+    {
+	WhiteboardController controller = new WhiteboardController();
+	controller.indicator = false;	
+	Whiteboard_Item__c item = new Whiteboard_Item__c(Name = 'Item One', PersonalItem__c = true, Completed__c = false);
+	controller.setItem(item);
+    controller.save();
+	System.assertEquals(1, controller.currentItems.size());
+
+	
+	 controller.searchValue = 'HELLO';
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'NONE';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'HIGH';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'NONE';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ITEM';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'NONE';
+	 controller.filter();
+	 
+	 controller.itemOrActivity = 'ACTIVITY';
+	 controller.priority = 'NOPRIORITY';
+     controller.TimeFrame = 'TODAY';
+	 controller.filter();
+	 }
+		
 }

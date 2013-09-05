@@ -358,7 +358,7 @@
                                 <span class="modalLabel">High Priority:</span><apex:inputCheckbox label="High Priority" value="{!Item.High_Priority__c}" styleClass="modalInput modalItemAssign"/>
                             </div>
                             <div class="modal-footer">
-                                <apex:commandButton styleClass="btn btn-primary" action="{!save}" onclick="checkTheNameAndDate();" value="Save" reRender="wholePage"/>  
+                                <apex:commandButton styleClass="btn btn-primary" action="{!save}" onclick="checkTheNameAndDate();" value="Save" reRender="sidebarPanel, wholePage"/>  
                                 <apex:commandButton styleClass="btn" value="Cancel" action="{!reset}" onclick="clearDate()" reRender="wholePage"/>
                             </div>
                         </apex:form>
@@ -642,7 +642,7 @@
                                                 <div class="accordion-inner activityRow" style="margin-left:27px">
                                                     <div class="nav pull-right buttonLine">
                                                         <apex:form >
-                                                            <apex:commandButton action="{!deleteAct}" value="✖" id="delete" reRender="trashRow" styleClass="btn close trashButton" onclick="if (!confirm('Are you sure you want to delete this activity forever?')) {return;};">
+                                                            <apex:commandButton action="{!deleteAct}" value="✖" id="delete" reRender="trashrow" styleClass="btn close trashButton" onclick="if (!confirm('Are you sure you want to delete this activity forever?')) {return;};">
                                                                 <apex:param name="ActId" value="{!act.Id}"/>
                                                             </apex:commandButton>
                                                             <div Class="prioritydone" style="{!IF(act.High_Priority__c == true, true, 'display:none')}">
